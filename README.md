@@ -35,6 +35,9 @@ The dependencies included in `dust/lib` (nanovg, picopng, stb_truetype) each hav
 permissive license, see each file for the details. The scancode conversion tables
 are from SDL (for compatibility), see license in `dust/gui/scancode.h` for details.
 
+The default fonts included as Deja Vu Sans / Sans Mono, converted into headers
+so that there is always some font available to draw text.
+
 ## Building
 
 In theory, type `make` and it will find all source files inside `dust/` and build them

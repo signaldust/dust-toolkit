@@ -8,7 +8,8 @@ applications and plugins.
 
 If you're looking for a fool-proof, fully-featured enterprise-ready toolkit, then look elsewhere.
 This toolkit is designed to make the lone-coder or a small team highly-productive by trying to
-minimize any pointless boilerplate.
+minimize any pointless boilerplate. On the other hand, it probably doesn't solve all your problems,
+it just tries to do the boring stuff that you always need in a reasonably painless way.
 
 It is retained mode. It is mainly designed to draw scalable vectors on the CPU, but has support
 for compositing this with OpenGL rendering. This is probably not the toolkit you want to use for

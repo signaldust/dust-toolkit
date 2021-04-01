@@ -11,7 +11,7 @@ This toolkit is designed to make the lone-coder or a small team highly-productiv
 minimize any pointless boilerplate.
 
 It is retained mode. It is mainly designed to draw scalable vectors on the CPU, but has support
-for composising this with OpenGL rendering. This is probably not the toolkit you want to use for
+for compositing this with OpenGL rendering. This is probably not the toolkit you want to use for
 games. The primary design principle is to try to minimize boilerplate, both internally and for
 applications, but without sacrificing flexibility.
 

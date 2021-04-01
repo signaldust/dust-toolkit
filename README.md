@@ -15,6 +15,11 @@ for composising this with OpenGL rendering. This is probably not the toolkit you
 games. The primary design principle is to try to minimize boilerplate, both internally and for
 applications, but without sacrificing flexibility.
 
+Also note that the included editor program `dusted` is not necessarily intended to be a production
+quality product and does not necessarily represent the code quality expected from the rest of the
+toolkit. While it is the editor I use as my day-to-day code editor, it's original function
+was to exercise the toolkit for the purpose of dog-food testing.
+
 ## License
 
 The following license applies to the toolkit itself:

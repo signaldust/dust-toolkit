@@ -36,7 +36,7 @@ The following license applies to the toolkit itself:
 \****************************************************************************/
 ```
 
-The dependencies included in `dust/lib` (nanovg, picopng, stb_truetype) each have
+The dependencies included in `dust/lib` (nanosvg, picopng, stb_truetype) each have
 permissive license, see each file for the details. The scancode conversion tables
 are from SDL (for compatibility), see license in `dust/gui/scancode.h` for details.
 

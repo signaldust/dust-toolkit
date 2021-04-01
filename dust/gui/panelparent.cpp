@@ -1,10 +1,136 @@
 
-#include "control.h"
+#include "panel.h"
+#include "window.h"
 
 namespace dust
 {
+    PanelParent::~PanelParent()
+    {
+        // this should probably be an assertion failure
+        // if we have any children left..
+        removeAllChildren();
+    }
 
-    void ControlParent::layoutAsRoot(float dpi)
+    void PanelParent::removeAllChildren()
+    {
+        while(children.first)
+        {
+            children.first->setParent(0);
+        }
+    }
+
+    void PanelParent::updateAllChildren()
+    {
+        for(Panel * c : children)
+        {
+            if(!c->enabled) continue;
+
+            c->ev_update();
+            c->updateAllChildren();
+        }
+    }
+
+    // See notes in header
+    void PanelParent::addChild(Panel * c)
+    {
+        c->siblingsPrev = children.last;
+        children.last = c;
+
+        if(c->siblingsPrev) { c->siblingsPrev->siblingsNext = c; }
+        else { children.first = c; }
+    }
+
+    // See notes in header
+    void PanelParent::removeChild(Panel * c)
+    {
+        if(c->siblingsPrev) { c->siblingsPrev->siblingsNext = c->siblingsNext; }
+        else { children.first = c->siblingsNext; }
+
+        if(c->siblingsNext) { c->siblingsNext->siblingsPrev = c->siblingsPrev; }
+        else { children.last = c->siblingsPrev; }
+
+        c->siblingsPrev = 0;
+        c->siblingsNext = 0;
+    }
+
+    void PanelParent::broadcastDPI(float dpi)
+    {
+        for(Panel * c : children)
+        {
+            c->ev_dpi(dpi);
+            c->broadcastDPI(dpi);
+        }
+    }
+
+    void PanelParent::broadcastDiscardWindow()
+    {
+        for(Panel * c : children)
+        {
+            getWindow()->discardTracking(c);
+            c->broadcastDiscardWindow();
+            c->discardWindow();
+        }
+    }
+
+    void PanelParent::renderChildren(RenderContext & rcParent)
+    {
+        for(Panel * c : children)
+        {
+            if(!c->enabled || !c->visible) continue;
+
+            int cx = c->layout.x + layout.contentOffsetX;
+            int cy = c->layout.y + layout.contentOffsetY;
+
+            Rect rChild(cx, cy, c->layout.w, c->layout.h);
+
+            RenderContext   rc(rcParent, rChild, true);
+            if(rc.getClipRect().isEmpty()) continue;
+
+            c->render(rc);
+            c->renderChildren(rc);
+#if DUST_DEBUG_LAYOUT
+            rc.drawRectBorder(paint::Color(0x40402010),
+                0, 0, c->layout.w, c->layout.h, 1);
+#endif
+        }
+    }
+
+    Panel * PanelParent::dispatchMouseEvent(const MouseEvent & ev)
+    {
+        // always test the topmost (last) child first
+        for(Panel * c : in_reverse(children))
+        {
+            // check the bounds of the child
+            int x = ev.x - c->layout.windowOffsetX;
+            int y = ev.y - c->layout.windowOffsetY;
+
+            // first check that we are visible and inside layout bounds
+            if(!c->enabled || !c->visible
+                || x < 0 || x >= c->layout.w
+                || y < 0 || y >= c->layout.h) continue;
+
+            // test the grand children first
+            Panel * target = c->dispatchMouseEvent(ev);
+            if(target) return target;
+
+            // test the child itself
+            if(c->ev_hittest(x, y))
+            {
+                MouseEvent eRel = ev; eRel.x = x; eRel.y = y;
+                if(c->ev_mouse(eRel)) return c;
+            }
+        }
+
+        return 0;
+    }
+
+    void PanelParent::scrollToView(int x, int y, int dx, int dy)
+    {
+        PanelParent * parent = getParent();
+        if(parent) parent->scrollToView(x + layout.x, y + layout.y, dx, dy);
+    }
+
+    void PanelParent::layoutAsRoot(float dpi)
     {
         calculateContentSizeX(dpi);
         calculateLayoutX();
@@ -14,12 +140,12 @@ namespace dust
         updateWindowOffsets();
     }
 
-    void ControlParent::updateWindowOffsets()
+    void PanelParent::updateWindowOffsets()
     {
         int contentX = layout.windowOffsetX + layout.contentOffsetX;
         int contentY = layout.windowOffsetY + layout.contentOffsetY;
 
-        for(Control * c : children)
+        for(Panel * c : children)
         {
             if(!c->enabled) continue;
 
@@ -29,14 +155,14 @@ namespace dust
         }
     }
 
-    void ControlParent::calculateContentSizeX(float dpi)
+    void PanelParent::calculateContentSizeX(float dpi)
     {
         // use the initial layout.w as minimum content size
         // this is a temporary value unless this is the layout root
         int contentSize = 0;
         int reserveSize = 0;
 
-        for(Control * c : children)
+        for(Panel * c : children)
         {
             // don't do any layout if disabled or rule is none
             if(!c->enabled || c->style.rule == LayoutStyle::NONE) continue;
@@ -86,13 +212,13 @@ namespace dust
         layout.contentSizeX = (std::max)(contentSize, layout.w);
     }
 
-    void ControlParent::calculateContentSizeY(float dpi)
+    void PanelParent::calculateContentSizeY(float dpi)
     {
         // see calculateContentSizeX
         int contentSize = 0;
         int reserveSize = 0;
 
-        for(Control * c : children)
+        for(Panel * c : children)
         {
             // don't do any layout if disabled or rule is none
             if(!c->enabled || c->style.rule == LayoutStyle::NONE) continue;
@@ -142,13 +268,13 @@ namespace dust
         layout.contentSizeY = (std::max)(contentSize, layout.h);
     }
 
-    void ControlParent::calculateLayoutX()
+    void PanelParent::calculateLayoutX()
     {
         layout.contentSizeX = (std::max)(layout.contentSizeX, layout.w);
         int box0 = layout.contentPadding.west;
         int box1 = layout.contentSizeX - layout.contentPadding.east;
 
-        for(Control * c : children)
+        for(Panel * c : children)
         {
             if(!c->enabled || c->style.rule == LayoutStyle::NONE) continue;
 
@@ -182,13 +308,13 @@ namespace dust
 
     }
 
-    void ControlParent::calculateLayoutY()
+    void PanelParent::calculateLayoutY()
     {
         layout.contentSizeY = (std::max)(layout.contentSizeY, layout.h);
         int box0 = layout.contentPadding.north;
         int box1 = layout.contentSizeY - layout.contentPadding.south;
 
-        for(Control * c : children)
+        for(Panel * c : children)
         {
             if(!c->enabled || c->style.rule == LayoutStyle::NONE) continue;
 

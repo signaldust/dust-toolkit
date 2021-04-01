@@ -277,12 +277,12 @@ namespace dust
     };
 };
 
-struct FileBrowser : dust::Control
+struct FileBrowser : dust::Panel
 {
     dust::ScrollPanel    scroll;
     dust::TreeViewDir    root;
 
-    struct Filler : Control
+    struct Filler : Panel
     {
         void render(dust::RenderContext & rc)
         {
@@ -326,7 +326,7 @@ static time_t getTimeForPath(const std::string & path)
 }
 
 // we might want to put several of these side by side?
-struct Document : dust::Control
+struct Document : dust::Panel
 {
     dust::ScrollPanel    scroll;
     dust::TextArea       editor;
@@ -420,7 +420,7 @@ struct TestIcon : dust::SVG
     }
 } testIcon;
 
-struct NoDocument : dust::Control
+struct NoDocument : dust::Panel
 {
     struct Background : dust::ButtonBase
     {
@@ -509,7 +509,7 @@ struct BuildScrollPanel : dust::ScrollPanel
     }
 };
 
-struct BuildPanel : dust::Control
+struct BuildPanel : dust::Panel
 {
     BuildScrollPanel    scroll;
 
@@ -519,7 +519,7 @@ struct BuildPanel : dust::Control
     
     dust::SlaveProcess   slave;
     
-    dust::Control        header;
+    dust::Panel        header;
     dust::Button         buildButton;
     dust::Label          buildButtonLabel;
     dust::Label          status;
@@ -648,7 +648,7 @@ struct BuildPanel : dust::Control
     }
 };
 
-struct AppWindow : dust::Control
+struct AppWindow : dust::Panel
 {
     dust::Grid<2,1>  grid;
 

@@ -35,7 +35,7 @@ namespace dust
 
     extern Theme theme;
     
-    // Layout "style-sheet" for Controls - on top for easy reference
+    // Layout "style-sheet" for Panels - on top for easy reference
     struct LayoutStyle
     {
         // the layout rule to use
@@ -104,27 +104,27 @@ namespace dust
     };
 
     ///
-    // The basic UI element is Control which is some sort of widget.
+    // The basic UI element is Panel which is some sort of widget.
     // Their lifetime is entirely application managed.
     //
-    // At any given time, each Control has at most one parent,
-    // which may be another Control or a Window. If the parent is
-    // destroyed (eg. a Window is closed) the Controls will simply
+    // At any given time, each Panel has at most one parent,
+    // which may be another Panel or a Window. If the parent is
+    // destroyed (eg. a Window is closed) the Panels will simply
     // become parentless until attached to another parent.
     //
-    // It is generally safe to destroy Controls at any time.
+    // It is generally safe to destroy Panels at any time.
 
-    struct Control; // forward declare for ControlParent
-    struct Window;  // forward declare for ControlParent
+    struct Panel; // forward declare for PanelParent
+    struct Window;  // forward declare for PanelParent
 
-    // ControlParent contains the bulk of Control's implementation,
-    // with Control itself simply adding the parenting logic.
+    // PanelParent contains the bulk of Panel's implementation,
+    // with Panel itself simply adding the parenting logic.
     //
     // Window also derives from this, but cannot have a parent.
     //
-    struct ControlParent : IControlResponder
+    struct PanelParent : EventResponder
     {
-        virtual ~ControlParent();
+        virtual ~PanelParent();
 
         virtual Window * getWindow() = 0;
 
@@ -140,13 +140,13 @@ namespace dust
         // render children
         void renderChildren(RenderContext & rc);
 
-        Control * dispatchMouseEvent(const MouseEvent & ev);
+        Panel * dispatchMouseEvent(const MouseEvent & ev);
 
         const Layout & getLayout() { return layout; }
 
         // this is just to allow recursion up the parent tree
-        // ControlParent itself never actually has a parent
-        virtual ControlParent * getParent() { return 0; }
+        // PanelParent itself never actually has a parent
+        virtual PanelParent * getParent() { return 0; }
 
         // recalculate all the window offsets for the layout tree
         void updateWindowOffsets();
@@ -168,7 +168,7 @@ namespace dust
         // doing a full repaint just to adjust scrollbars
         virtual void reflowChildren()
         {
-            ControlParent * parent = getParent();
+            PanelParent * parent = getParent();
             if(parent) parent->reflowChildren();
         }
 
@@ -199,13 +199,13 @@ namespace dust
         virtual void render(RenderContext & rc) { }
 
     private:
-        friend Control;
+        friend Panel;
 
-        // these are used by Control::setParent which enforces
+        // these are used by Panel::setParent which enforces
         // "at most one" condition, so no need to check here
         //
-        void addChild(Control * c);
-        void removeChild(Control * c);
+        void addChild(Panel * c);
+        void removeChild(Panel * c);
 
         // NOTES: We originally used simple std::list for these
         // but intrusive is preferable for several reasons:
@@ -219,16 +219,16 @@ namespace dust
         //
         struct Children
         {
-            Control *first = 0;
-            Control *last = 0;
+            Panel *first = 0;
+            Panel *last = 0;
 
             // forward iterator
             struct iteratorF
             {
-                Control *p;
+                Panel *p;
 
-                iteratorF(Control * p) : p(p) {}
-                Control * operator*() const { return p; }
+                iteratorF(Panel * p) : p(p) {}
+                Panel * operator*() const { return p; }
                 iteratorF & operator++();
                 bool operator!=(const iteratorF & i) const
                 { return p != i.p; }
@@ -236,10 +236,10 @@ namespace dust
 
             struct iteratorR
             {
-                Control *p;
+                Panel *p;
 
-                iteratorR(Control * p) : p(p) {}
-                Control * operator*() const { return p; }
+                iteratorR(Panel * p) : p(p) {}
+                Panel * operator*() const { return p; }
                 iteratorR & operator++();
                 bool operator!=(const iteratorR & i) const
                 { return p != i.p; }
@@ -257,12 +257,12 @@ namespace dust
     };
 
     // Base class for actual widgets
-    struct Control : ControlParent, ComponentHost
+    struct Panel : PanelParent, ComponentHost
     {
         // layout styles for this control
         LayoutStyle style;
 
-        ~Control();
+        ~Panel();
 
         // request layout recalculation
         void reflow() { if(parent) parent->reflowChildren(); }
@@ -300,13 +300,13 @@ namespace dust
         void focus();
 
         // set (or clear is newParent is null) the parent of this control
-        void setParent(ControlParent * newParent);
+        void setParent(PanelParent * newParent);
 
         // since we often want to use references, make it possible
-        void setParent(ControlParent & newParent) { setParent(&newParent); }
+        void setParent(PanelParent & newParent) { setParent(&newParent); }
 
         // return the current parent of this control or null if none
-        ControlParent * getParent() { return parent; }
+        PanelParent * getParent() { return parent; }
 
         // return the current window if there is one at the root
         // of the UI tree this control is part of
@@ -335,29 +335,29 @@ namespace dust
         bool getEnabled() { return enabled; }
 
         // get next sibling if any
-        Control * getSiblingNext() const { return siblingsNext; }
+        Panel * getSiblingNext() const { return siblingsNext; }
 
         // get previous sibling if any
-        Control * getSiblingPrevious() const { return siblingsPrev; }
+        Panel * getSiblingPrevious() const { return siblingsPrev; }
 
     private:
         Window * window = 0;    // cached window
-        ControlParent * parent = 0;
+        PanelParent * parent = 0;
 
         // allow access to siblings
         // could also just add accessors?
-        friend ControlParent;
-        friend ControlParent::Children::iteratorF;
-        friend ControlParent::Children::iteratorR;
+        friend PanelParent;
+        friend PanelParent::Children::iteratorF;
+        friend PanelParent::Children::iteratorR;
 
         // pointers for next and previous sibling
-        Control * siblingsNext = 0;
-        Control * siblingsPrev = 0;
+        Panel * siblingsNext = 0;
+        Panel * siblingsPrev = 0;
     };
 
 #if 0
     // Currently this exists for the purpose of documentation only
-    struct GLControl : Control
+    struct GLPanel : Panel
     {
         void render(RenderContext & rc)
         {
@@ -380,14 +380,14 @@ namespace dust
     };
 #endif
 
-    // out of line definition, because we need Control defined
-    inline ControlParent::Children::iteratorF &
-    ControlParent::Children::iteratorF::operator++()
+    // out of line definition, because we need Panel defined
+    inline PanelParent::Children::iteratorF &
+    PanelParent::Children::iteratorF::operator++()
     { p = p->siblingsNext; return *this; }
 
-    // out of line definition, because we need Control defined
-    inline ControlParent::Children::iteratorR &
-    ControlParent::Children::iteratorR::operator++()
+    // out of line definition, because we need Panel defined
+    inline PanelParent::Children::iteratorR &
+    PanelParent::Children::iteratorR::operator++()
     { p = p->siblingsPrev; return *this; }
 
     // this allows range-based loops for children in reverse

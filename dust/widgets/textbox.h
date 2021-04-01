@@ -13,7 +13,7 @@ namespace dust
     // that is limited to a single line of text.
     //
     // FIXME: should really merge the two into one?
-    struct TextBox : Control
+    struct TextBox : Panel
     {
         Notify  onEnter = doNothing;
         Notify  onShiftEnter = [this](){ onEnter(); };

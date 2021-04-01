@@ -2,7 +2,7 @@
 #ifndef DUST_WIDGET_FUNCPLOT_H
 #define DUST_WIDGET_FUNCPLOT_H
 
-#include "control.h"
+#include "panel.h"
 
 #include <vector>
 
@@ -10,7 +10,7 @@ namespace dust
 {
     // This implements basic function plotting.
     //
-    struct FuncPlot : Control
+    struct FuncPlot : Panel
     {
         // represents a single data point
         //

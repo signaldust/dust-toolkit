@@ -1,13 +1,13 @@
 
 #pragma once
 
-#include "dust/gui/control.h"
+#include "dust/gui/panel.h"
 
 namespace dust
 {
     static const float  xyHandlePt = 12;
     
-    struct XYPad : Control
+    struct XYPad : Panel
     {
         // called when value changes due to user actions
         Notify  onValueChange = doNothing;

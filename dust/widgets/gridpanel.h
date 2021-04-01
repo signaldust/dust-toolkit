@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "dust/gui/control.h"
+#include "dust/gui/panel.h"
 
 #include <vector>
 
@@ -23,7 +23,7 @@ namespace dust
     // elements approach the weights as fast as possible, rather
     // than asymptotically like in the current implementation.
     //
-    struct GridPanel : Control
+    struct GridPanel : Panel
     {
 
         GridPanel(unsigned nColumn) : nColumn(nColumn)
@@ -194,7 +194,7 @@ namespace dust
         }
 
         // insert component into a grid cell
-        void insert(unsigned col, unsigned row, Control & ctl)
+        void insert(unsigned col, unsigned row, Panel & ctl)
         {
             ctl.setParent(getCell(col, row));
         }
@@ -203,14 +203,14 @@ namespace dust
         const unsigned nColumn;
 
         // return a pointer to a given cell or null if out of bounds
-        Control * getCell(unsigned c, unsigned r)
+        Panel * getCell(unsigned c, unsigned r)
         {
             if(c >= nColumn) return 0;
             if(r >= rows.size()) return 0;
             return rows[r] + c;
         }
 
-        struct Column : Control
+        struct Column : Panel
         {
             float weight;
             Layout & getLayout() { return layout; }
@@ -222,7 +222,7 @@ namespace dust
             void doLayoutY() { calculateLayoutY(); }
         } *columns;
 
-        struct Cell : Control
+        struct Cell : Panel
         {
             Layout & getLayout() { return layout; }
         };

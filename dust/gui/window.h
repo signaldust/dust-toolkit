@@ -4,7 +4,7 @@
 #include "dust/render/render.h"
 #include "dust/core/component.h"
 
-#include "control.h"
+#include "panel.h"
 
 namespace dust
 {
@@ -39,7 +39,7 @@ namespace dust
         virtual ~Menu() {}  // not really needed but fix clang warning
     };
 
-    // IFrameController provides callbacks for window lifetime notifications.
+    // WindowDelegate provides callbacks for window lifetime notifications.
     struct WindowDelegate
     {
         // called after a window is created
@@ -69,7 +69,7 @@ namespace dust
     // NOTE: platform implementations are required to guarantee that
     // the GL context of the window is current when components are drained
     //
-    struct Window : ControlParent, ComponentHost
+    struct Window : PanelParent, ComponentHost
     {
         // called by setScale()
         dust::Notify onScaleChange = dust::doNothing;
@@ -154,8 +154,8 @@ namespace dust
         // see sendMouseEvent
         void sendMouseExit();
 
-        void setFocus(Control * c);
-        Control * getFocus() { return focus; }
+        void setFocus(Panel * c);
+        Panel * getFocus() { return focus; }
 
         // forward keyboard events to focus if any
         void sendKey(Scancode vk, bool pressed, unsigned mods)
@@ -176,7 +176,7 @@ namespace dust
 #endif
             if(focus)
             {
-                ControlParent * target = focus;
+                PanelParent * target = focus;
                 while(target)
                 {
                     if(target->ev_key(vk, pressed, mods)) break;
@@ -194,14 +194,14 @@ namespace dust
         // this will discard any focus or mouse tracking
         // without sending any events to the control
         //
-        // used by Control's destructor to avoid stale pointers
+        // used by Panel's destructor to avoid stale pointers
         // there is usually no need to call this manually
         //
         // FIXME: Deleting the control that consumes a mouse event
         // other than button release in response to the event leads
         // to a dangling mouseTrack pointer, because we only store
         // the tracking after the event processing returns.
-        void discardTracking(Control * c)
+        void discardTracking(Panel * c)
         {
             if(focus == c) focus = 0;
             if(mouseTrack == c)
@@ -213,7 +213,7 @@ namespace dust
         
         // redirects an active drag-capture to another control
         // intended for co-operating controls like tabstrips
-        void redirectDrag(Control * c)
+        void redirectDrag(Panel * c)
         {
             if(!dragButton) return;
             mouseTrack = c;
@@ -226,7 +226,7 @@ namespace dust
         // the control must be a child of the window
         //
         // returns true if successful
-        bool openGL(Control & ctl);
+        bool openGL(Panel & ctl);
 
         // returns true if there's a paint request pending
         bool needsRepaint()
@@ -263,8 +263,8 @@ namespace dust
 #if DUST_USE_OPENGL
         bool            needRecomposite;
 #endif
-        Control *   focus;
-        Control *   mouseTrack;
+        Panel           *focus;
+        Panel           *mouseTrack;
 
         unsigned        dragButton;
 
@@ -284,7 +284,7 @@ namespace dust
     Window * createWindow(WindowDelegate & delegate, void *parent, int w, int h);
 
     // this places a given control into a newly created window, with auto-size
-    static void openWindow(Control & c, WindowDelegate & delegate, void *parent = 0)
+    static void openWindow(Panel & c, WindowDelegate & delegate, void *parent = 0)
     {
         unsigned szX, szY;
         c.computeSize(szX, szY);

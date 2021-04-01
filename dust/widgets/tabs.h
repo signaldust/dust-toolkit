@@ -8,13 +8,13 @@ namespace dust
 {
     // TabPanel manages the collection of tabs.
     //
-    // Content must be default constructible and derived from Control.
+    // Content must be default constructible and derived from Panel.
     // NoContent is set as content when there are no tabs.
     //
     // We template the type to track it for application code.
     //
     template <typename Content, typename NoContent>
-    struct TabPanel : Control
+    struct TabPanel : Panel
     {
         // this is really just the maximum size
         // we draw them smaller when we have too many
@@ -203,7 +203,7 @@ namespace dust
 
     private:
 
-        struct TabStrip : Control
+        struct TabStrip : Panel
         {
             TabPanel    *panel;
 
@@ -371,7 +371,7 @@ namespace dust
         };
         
         TabStrip    strip;
-        Control     contentView;
+        Panel       contentView;
 
         std::vector< std::unique_ptr<Tab> > tabs;
 

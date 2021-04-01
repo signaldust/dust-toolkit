@@ -3,7 +3,7 @@
 namespace dust
 {
     // Simple read-only multi-line text control
-    struct LogView : Control
+    struct LogView : Panel
     {
         Font    _font;
         

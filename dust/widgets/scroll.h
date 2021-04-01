@@ -1,14 +1,14 @@
 
 #pragma once
 
-#include "dust/gui/control.h"
+#include "dust/gui/panel.h"
 
 namespace dust
 {
     static const float  scrollbarSizePt = 6;
 
     template <bool horizontal>
-    struct ScrollbarBase : Control
+    struct ScrollbarBase : Panel
     {
         Notify onScroll = doNothing;
 
@@ -128,7 +128,7 @@ namespace dust
     typedef ScrollbarBase<true>     ScrollbarH;
 
     // Scrollpanel
-    struct ScrollPanel : Control
+    struct ScrollPanel : Panel
     {
         ScrollPanel()
         {
@@ -290,10 +290,10 @@ namespace dust
             return false;
         }
 
-        Control * getContent() { return &content; }
+        Panel * getContent() { return &content; }
 
     private:
-        struct Content : Control
+        struct Content : Panel
         {
             // overscroll relative to viewport size
             // 0 means none, 1 means one full viewport
@@ -319,7 +319,7 @@ namespace dust
         };
 
         Content     content;
-        Control     bottom, spacer;
+        Panel       bottom, spacer;
 
         ScrollbarV  vscroll;
         ScrollbarH  hscroll;

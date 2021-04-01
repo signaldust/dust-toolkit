@@ -40,7 +40,7 @@ namespace dust
     // Multi-line text-area - should be placed inside a scrolling panel
     //
     // supports "bunch of stuff" to make it a more realistic editor
-    struct TextArea : Control
+    struct TextArea : Panel
     {
         // called when textarea gains focus
         Notify  onFocus = doNothing;

@@ -9,7 +9,7 @@ namespace dust
 {
     extern ComponentManager<Font, Window>  LabelFont;
 
-    struct Label : Control
+    struct Label : Panel
     {
         // font specific to this label
         // when invalid, window-global label font is used

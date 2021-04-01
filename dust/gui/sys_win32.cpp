@@ -3,7 +3,7 @@
 
 // enables styles .. both lines are required
 #define ISOLATION_AWARE_ENABLED 1
-#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' "\
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Panels' "\
     "version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #include <windows.h>
@@ -149,7 +149,7 @@ static struct WindowClass
         icc.dwSize = sizeof(icc);
         icc.dwICC = ICC_WIN95_CLASSES;
         // also init common controls here
-        InitCommonControlsEx(&icc);
+        InitCommonPanelsEx(&icc);
     }
 
     ~WindowClass()

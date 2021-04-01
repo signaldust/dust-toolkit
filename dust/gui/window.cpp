@@ -30,7 +30,7 @@ namespace dust
 
     Window::~Window()
     {
-        // see Control::~Control, same thing
+        // see Panel::~Panel, same thing
         // remove children before vtable is gone
         removeAllChildren();
     }
@@ -73,7 +73,7 @@ namespace dust
                 dragButton = ev.button;
             }
             
-            Control * target = dispatchMouseEvent(ev);
+            Panel * target = dispatchMouseEvent(ev);
             if(mouseTrack && mouseTrack != target)
             {
                 mouseTrack->ev_mouse_exit();
@@ -118,7 +118,7 @@ namespace dust
         }
     }
 
-    void Window::setFocus(Control * c)
+    void Window::setFocus(Panel * c)
     {
         if(focus == c) return;
 
@@ -252,7 +252,7 @@ namespace dust
 
     ComponentManager<WindowGL, Window> cm_WindowGL;
 
-    bool Window::openGL(Control & ctl)
+    bool Window::openGL(Panel & ctl)
     {
         // check that this render context is for our backing surface
         if(ctl.getWindow() != this) return false;

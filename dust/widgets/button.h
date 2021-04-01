@@ -1,14 +1,14 @@
 
 #pragma once
 
-#include "dust/gui/control.h"
+#include "dust/gui/panel.h"
 
 namespace dust
 {
     // ButtonBase implements the functionality of a basic button
     // it tracks mouse-over state but doesn't include rendering
     //
-    struct ButtonBase : Control
+    struct ButtonBase : Panel
     {
         Notify onClick = doNothing;
 

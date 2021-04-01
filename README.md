@@ -21,6 +21,11 @@ quality product and does not necessarily represent the code quality expected fro
 toolkit. While it is the editor I use as my day-to-day code editor, it's original function
 was to exercise the toolkit for the purpose of dog-food testing.
 
+It supports Windows and OSX, but the bulk of it is platform independent. While it should probably
+work for 32-bit builds, at this point I only care about performance for 64-bit builds. There are
+some bits of code (notably the surface blur) that utilize x86 SSE intrinsics, so expect to do
+a bit of editing if you want to use this on other CPU architectures.
+
 ## License
 
 The following license applies to the toolkit itself:

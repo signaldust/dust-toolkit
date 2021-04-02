@@ -66,6 +66,9 @@ struct HelloApp : dust::Application
 {
     HelloWorld  hello;
 
+    // This is called inside the event-loop when we call run() in main.
+    // Creating windows outside the event-loop can cause issues on some
+    // platforms (eg. on macOS it leaks memory) so one should do it here.
     void app_startup()
     {
         // We'll first create a window, passing the app as the delegate.

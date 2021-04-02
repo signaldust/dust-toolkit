@@ -64,9 +64,21 @@ macOS system wrapper `dust/gui/sys_osx.mm`. For applications this can be anythin
 using the toolkit for plugins (eg. AudioUnit, VST) this should be unique (which is why
 the `Makefile` generates a random UUID for each build by default).
 
+## Contributing
+
+In general, if you want to help improve some aspect of the toolkit, then I would generally
+recommend opening an issue first to discuss what you want to do.
+
+Any pull-requests must compile as C++11 and should not contain excessive long lines of source
+code (aim at ~80 characters), tab-characters are strictly forbidden and `struct` should be
+used in place of `class` whenever possible.
+
 ## Where to start?
 
-At this point, there isn't any documentation yet, other than the header files themselves.
+Start by taking a look at the [hello world example](programs/hello/hello.cpp).
+
+Other than that, at this point, there isn't any documentation yet,
+but the header files are quite extensively commented.
 
 That said as a general rule-of-thumb the toolkit follows the principle that whoever creates
 an object/resource also owns it. For example, any `Control` can be placed in stack, heap,
@@ -79,12 +91,3 @@ The whole thing is designed to be fairly modular: `core` is required by most thi
 the `gui` module also depends on `render` and `dust/widgets/textarea.h` depends on `regex`.
 
 The `thread` module is optional and somewhat geared towards real-time (eg. audio) work.
-
-## Contributing
-
-In general, if you want to help improve some aspect of the toolkit, then I would generally
-recommend opening an issue first to discuss what you want to do.
-
-Any pull-requests must compile as C++11 and should not contain excessive long lines of source
-code (aim at ~80 characters), tab-characters are strictly forbidden and `struct` should be
-used in place of `class` whenever possible.

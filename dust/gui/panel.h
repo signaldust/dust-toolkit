@@ -279,6 +279,14 @@ namespace dust
 
             layoutAsRoot(dpi);
 
+            // we need to add padding manually here
+            // because this is normally done by parrent
+            layout.contentSizeX += (int) ceil(style.padding.east*unit);
+            layout.contentSizeX += (int) ceil(style.padding.west*unit);
+
+            layout.contentSizeY += (int) ceil(style.padding.north*unit);
+            layout.contentSizeY += (int) ceil(style.padding.south*unit);
+            
             szX = layout.contentSizeX;
             szY = layout.contentSizeY;
 

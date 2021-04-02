@@ -22,6 +22,10 @@ struct HelloWorld : dust::Panel
         // set the panel itself to fill the window..
         style.rule = dust::LayoutStyle::FILL;
 
+        // let's add some padding, so the label doesn't fit so tight
+        style.padding.west = 12;
+        style.padding.east = 12;
+
         // The native layout system is "border layout" and the order in which
         // we add children to their parent is the order they are processed,
         // but the order of anything other than setParent() is mostly irrelevant.
@@ -37,14 +41,18 @@ struct HelloWorld : dust::Panel
         // standard buttons are blank, so add a child label for text
         closeLabel.setParent(closeButton);
         closeLabel.style.rule = dust::LayoutStyle::FILL;
-        closeLabel.setText("close");
         // let's use a monospace font just for giggles
+        // we'll set the font before setting the text
+        // otherwise we'd have to call recalculateSize() to refresh
         closeLabel.font.loadDefaultFont(8.f, 96.f, true);
+        closeLabel.setText("close");
         
         // then we'll fill the rest of the window with a greeting
         helloText.setParent(this);
-        helloText.setText("Hi, how are you doing?");
+        // we'll set the font before setting the text
+        // otherwise we'd have to call recalculateSize() to refresh
         helloText.font.loadDefaultFont(20.f, 96.f);
+        helloText.setText("Hi, how are you doing?");
         helloText.style.rule = dust::LayoutStyle::FILL;
 
         // by default, the label draws with dust::theme.fgColor,
@@ -71,22 +79,13 @@ struct HelloApp : dust::Application
     // platforms (eg. on macOS it leaks memory) so one should do it here.
     void app_startup()
     {
-        // We'll first create a window, passing the app as the delegate.
+        // open a window for our GUI - minimum size is whatever we can fit
         //
-        // Since we want a top-level window (ie. we're not trying to place
-        // the native window/view inside another native window/view) we'll
-        // pass a null-pointer as the parent.
-        //
-        // In theory, we could use dust::openWindow() to automatically find
-        // the minimum size that can fit our GUI, but unfortunately the label
-        // widget hasn't been updated for this, so we'll make do without.
-        auto * win = dust::createWindow(*this, 0, 400, 100);
+        // we'll pass the application as the WindowDelegate
+        dust::openWindow(hello, *this);
 
         // give the window a title
-        win->setTitle("Hello World!");
-
-        // then we'll set the window as the parent of our GUI
-        hello.setParent(win);
+        hello.getWindow()->setTitle("Hello World!");
     }
     
 };

@@ -7,12 +7,8 @@
 
 namespace dust
 {
-    extern ComponentManager<Font, Window>  LabelFont;
-
     struct Label : Panel
     {
-        // font specific to this label
-        // when invalid, window-global label font is used
         Font    font;
         ARGB    color = 0;  // use theme().fgColor
 
@@ -22,26 +18,14 @@ namespace dust
 
             sizeX = 0;
             sizeY = 0;
-        }
 
-        // return the current label font for a window
-        Font & getFont(Window * win)
-        {
-            if(font.valid(win->getDPI())) return font;
-
-            Font & winfont = LabelFont.getReference(win);
-            if(!winfont.valid(win->getDPI()))
-                winfont.loadDefaultFont(8, win->getDPI());
-
-            return winfont;
+            font.loadDefaultFont(8, 96.f);
         }
 
         void recalculateSize()
         {
-            Window * win = getWindow();
-            if(!win) return;
-
-            Font & font = getFont(win);
+            auto * win = getWindow();
+            if(!font.valid(win ? win->getDPI() : 96.f)) return;
 
             // calculate label size
             sizeX = (int) ceil(font->getTextWidth(txt));
@@ -56,11 +40,11 @@ namespace dust
             recalculateSize();
         }
 
-        void setText(const std::string & txt) { setText(txt.c_str()); }
+        void setText(const std::string & txt){ setText(txt.c_str()); }
 
         void render(RenderContext & rc)
         {
-            Font & font = getFont(getWindow());
+            if(!font.valid(getWindow()->getDPI())) return;
 
             // try to center vertically?
             rc.drawCenteredText(font, txt,

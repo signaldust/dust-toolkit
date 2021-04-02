@@ -46,6 +46,8 @@
 // 
 namespace dust
 {
+    static ComponentManager<Font, Window>   treeFont;
+
     // these are unicode symbols used to prefix open/closed folders
     static const unsigned treeSymbolOpen    = 0x25BC;
     static const unsigned treeSymbolClosed  = 0x25B6;
@@ -77,7 +79,7 @@ namespace dust
         Font & getFont(Window * win)
         {
             // FIXME!
-            Font & font = dust::LabelFont.getReference(win);
+            Font & font = treeFont.getReference(win);
             if(!font.valid(win->getDPI()))
                 font.loadDefaultFont(8, win->getDPI());
             return font;

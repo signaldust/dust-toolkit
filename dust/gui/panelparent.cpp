@@ -162,12 +162,12 @@ namespace dust
         int contentSize = 0;
         int reserveSize = 0;
 
+        float unit = dpi * (1/72.f);
+
         for(Panel * c : children)
         {
             // don't do any layout if disabled or rule is none
             if(!c->enabled || c->style.rule == LayoutStyle::NONE) continue;
-
-            float unit = dpi * (1/72.f);
 
             // calculate temporary size as desired pixel size
             c->layout.w = (int) ceil(c->style.minSizeX * unit);

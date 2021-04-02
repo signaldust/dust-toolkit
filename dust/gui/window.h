@@ -130,7 +130,7 @@ namespace dust
         // note that we don't require this to be supported
         virtual void toggleMaximize() {}
 
-        // set window dustle
+        // set window title
         virtual void setTitle(const char * txt) = 0;
 
         // create a menu

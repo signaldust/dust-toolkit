@@ -152,7 +152,7 @@ struct CocoaWindow : Window
                 theme.bgColor, 0, layout.h));
         }
         
-    } dustleBar;
+    } titleBar;
 
     CocoaWindow(WindowDelegate & delegate, void * parent, int w, int h)
         : delegate(delegate), scaleFactor(96), keymods(0)
@@ -163,21 +163,21 @@ struct CocoaWindow : Window
         // we'll center the window below, so just pass zero position
         NSRect frame = NSMakeRect(0, 0, w, h );
 
-        // adjust size to fit a custom dustle-bar if top-level
+        // adjust size to fit a custom title-bar if top-level
         if(!getenv("DUST_LOWRES"))
         {
             // compute content frame size
             NSRect contentFrame = [NSWindow contentRectForFrameRect: frame
                 styleMask: NSTitledWindowMask];
 
-            dustleBar.size = int(frame.size.height - contentFrame.size.height);
+            titleBar.size = int(frame.size.height - contentFrame.size.height);
         }
                 
         NSWindow * window = 0;
         if(!parent && !delegate.win_want_view_only())
         {
-            // bump frame up by dustlesize
-            frame.size.height += dustleBar.size;
+            // bump frame up by titlesize
+            frame.size.height += titleBar.size;
             
             window = [[NSWindow alloc]
                 initWithContentRect:frame
@@ -201,8 +201,8 @@ struct CocoaWindow : Window
             [window setCollectionBehavior:
                 NSWindowCollectionBehaviorFullScreenPrimary];
 
-            // this makes inactive traffic lights darker and dustle-text
-            // white/gray, but we draw the actual dustlebar background manually
+            // this makes inactive traffic lights darker and title-text
+            // white/gray, but we draw the actual titlebar background manually
             [window setAppearance:
                 [NSAppearance appearanceNamed:NSAppearanceNameVibrantDark]];
 
@@ -210,7 +210,7 @@ struct CocoaWindow : Window
             //[window setBackgroundColor: NSColor.blackColor];
             [window setTitlebarAppearsTransparent: TRUE];
 
-            dustleBar.setParent(this);
+            titleBar.setParent(this);
 
         }
 
@@ -305,7 +305,7 @@ struct CocoaWindow : Window
     {
         if([[sysView window] delegate] == sysView)
         {
-            [[sysView window] setContentMinSize:NSMakeSize(w, h + dustleBar.size)];
+            [[sysView window] setContentMinSize:NSMakeSize(w, h + titleBar.size)];
         }
     }
 
@@ -469,7 +469,7 @@ struct CocoaWindow : Window
 
     void setTitle(const char * txt)
     {
-        // only set the dustle if it's our top-level window
+        // only set the title if it's our top-level window
         if(sysView == [[sysView window] delegate])
         {
             [[sysView window] setTitle:[NSString stringWithUTF8String:txt]];
@@ -667,7 +667,7 @@ Window * dust::createWindow(WindowDelegate & delegate,
 willPositionSheet:(NSWindow *)sheet 
        usingRect:(NSRect)rect
 {
-    // force sheets to below dustlebar, even if we mess with that
+    // force sheets to below titlebar, even if we mess with that
     // funky, because of our flipped geometry
     rect.origin.y = [window contentLayoutRect].size.height;
     return rect;
@@ -719,7 +719,7 @@ willPositionSheet:(NSWindow *)sheet
 {
     // sanity check stylemask
     auto style = [[self window] styleMask];
-    sysFrame->dustleBar.setEnabled(!(style & NSFullScreenWindowMask));
+    sysFrame->titleBar.setEnabled(!(style & NSFullScreenWindowMask));
     
     sysFrame->setTrackingArea();
     [super updateTrackingAreas];

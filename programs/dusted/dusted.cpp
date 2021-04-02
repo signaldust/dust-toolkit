@@ -778,7 +778,7 @@ struct AppWindow : dust::Panel
     void newDocument(DocumentPanel & targetPanel)
     {
         // here we do a little special case:
-        // if we have an undustled, unmodified document in current panel
+        // if we have an untitled, unmodified document in current panel
         // then don't actually bother opening a new one
         if(targetPanel.getActiveTab()
         && !targetPanel.getActiveTab()->content.path.size()
@@ -789,7 +789,7 @@ struct AppWindow : dust::Panel
             return;
         }
 
-        DocumentTab * tab = targetPanel.newTab("<undustled>");
+        DocumentTab * tab = targetPanel.newTab("<untitled>");
         tab->onClose = [this, tab]()
         { this->activeTab = 0; this->closeTab(tab); setWindowTitle(); };
 

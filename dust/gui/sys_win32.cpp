@@ -204,7 +204,7 @@ struct Win32Window : Window, Win32Callback
 			(LONG_PTR) (Win32Callback*) this);
         delegate.win_created();
 
-        // this will fix dustle-bar
+        // this will fix title-bar
 		if(!parent) resize(w, h);
         
 		::SetTimer(hwnd, 0, 1000/60, 0);
@@ -246,7 +246,7 @@ struct Win32Window : Window, Win32Callback
 	
 	void setTitle(const char * txt)
 	{
-        printf("Window dustle: %s\n", txt);
+        printf("Window title: %s\n", txt);
 		SetWindowTextA(hwnd, txt);
 	}
 	
@@ -254,10 +254,10 @@ struct Win32Window : Window, Win32Callback
 		Notify saveAndClose, Notify close, Notify cancel)
 	{
         // need one extra for the null
-        std::vector<char> dustle(GetWindowTextLengthA(hwnd) + 1);
-        GetWindowTextA(hwnd, dustle.data(), dustle.size());
+        std::vector<char> title(GetWindowTextLengthA(hwnd) + 1);
+        GetWindowTextA(hwnd, title.data(), title.size());
         
-        int id = MessageBoxA(hwnd, "Save changes before closing?", dustle.data(),
+        int id = MessageBoxA(hwnd, "Save changes before closing?", title.data(),
             MB_ICONWARNING | MB_YESNOCANCEL | MB_TASKMODAL);
 
         switch(id)

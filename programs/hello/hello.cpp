@@ -44,16 +44,12 @@ struct HelloWorld : dust::Panel
         // then we'll fill the rest of the window with a greeting
         helloText.setParent(this);
         helloText.setText("Hi, how are you doing?");
+        helloText.font.loadDefaultFont(20.f, 96.f);
+        helloText.style.rule = dust::LayoutStyle::FILL;
 
         // by default, the label draws with dust::theme.fgColor,
         // but we'll paint the background pretty, so draw text in black instead
         helloText.color = 0xff000000;
-
-        
-        // for auto-sizing to work, we'll need to explicitly set a font
-        // at this point though, the DPI doesn't actually matter yet
-        helloText.font.loadDefaultFont(20.f, 96.f);
-        helloText.style.rule = dust::LayoutStyle::FILL;
     }
 
     void render(dust::RenderContext & rc)

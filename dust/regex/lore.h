@@ -1,6 +1,6 @@
 
 /****************************************************************************\
-* Lore - regex library (c) Copyright pihlaja@signaldust.com 2014-2020        *
+* Lore - regex library (c) Copyright pihlaja@signaldust.com 2014-2021        *
 *----------------------------------------------------------------------------*
 * You can use and/or redistribute this for whatever purpose, free of charge, *
 * provided that the above copyright notice and this permission notice appear *
@@ -40,9 +40,6 @@
  Lore stands for "linear-time online regular expressions" and the
  name describes the basic concept pretty well: search on-the-fly
  and make sure that the engine can "never" get stuck or fail.
-
- On top of that is is simple C++98 and "free-standing" without
- external dependencies (it uses STL internally, but that's it).
 
  For an expression of length k it uses O(k) time per input character
  and keeps O(k) state. It runs incrementally one character at a time.

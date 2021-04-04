@@ -23,64 +23,6 @@
 
 namespace lore
 {
-    // test function for whitespace
-    static bool test_white(CharType ch)
-    {
-        // this probably should call "iswhite()" or something
-        // but .. for now this is good enough
-        return (ch == ' ' || ch == '\n' 
-            || ch == '\t' || ch == '\r');
-    }
-
-    static bool test_notwhite(CharType ch)
-    {
-        return !test_white(ch);
-    }
-
-    static bool test_digit(CharType ch)
-    {
-        return (ch >= '0' && ch <= '9');
-    }
-
-    static bool test_notdigit(CharType ch)
-    {
-        return !test_digit(ch);
-    }
-
-    static bool test_alnum(CharType ch)
-    {
-        return (ch >= 'A' && ch <= 'Z')
-            || (ch >= 'a' && ch <= 'z')
-            || (ch >= '0' && ch <= '9');
-    }
-
-    static bool test_notalnum(CharType ch)
-    {
-        return !test_alnum(ch);
-    }
-
-    static bool test_word(CharType ch)
-    {
-        return ch == '_' || ch > 0x80 || test_alnum(ch);
-    }
-
-    static bool test_notword(CharType ch)
-    {
-        return !test_word(ch);
-    }
-
-    // test function for anything (except CR/LF)
-    static bool test_any(CharType ch)
-    {
-        return (ch != '\n' && ch != '\r');
-    }
-
-    // this will match absolutely anything
-    // used to eat stuff when there is not ^ anchor
-    static bool test_true(CharType ch)
-    {
-        return true;
-    }
 
     // This is basically a fairly standard shift-reduce parser,
     // except sub-groups are handled recursively.
@@ -407,18 +349,17 @@ namespace lore
         case 't': ch = '\t'; return false;
         case 'r': ch = '\r'; return false;
         case '0': ch = '\0'; return false;
+        case '\\': ch = '\\'; return false;
             // functions
-        case 'd': tf = test_digit; return true;
-        case 'D': tf = test_notdigit; return true;
-        case 's': tf = test_white; return true;
-        case 'S': tf = test_notwhite; return true;
-        case 'w': tf = test_word; return true;
-        case 'W': tf = test_notword; return true;
+        case 'd': tf = TEST_DIGIT; return true;
+        case 'D': tf = TEST_NOT_DIGIT; return true;
+        case 's': tf = TEST_WHITE; return true;
+        case 'S': tf = TEST_NOT_WHITE; return true;
+        case 'w': tf = TEST_WORD; return true;
+        case 'W': tf = TEST_NOT_WORD; return true;
 
         default:
-            if(test_alnum(ch))
-                c.error = "Invalid escape";
-            // if no error, then pass literal
+            c.error = "Invalid escape";
             return false;
         }
     }
@@ -723,7 +664,7 @@ namespace lore
                 reduce_all(c, seq, alt, sub);
                 return;
             case '.':
-                match_func(c, test_any); ++seq;
+                match_func(c, TEST_NOT_CRLF); ++seq;
                 break;
             default:
                 match_char(c, ch); ++seq;
@@ -774,7 +715,7 @@ namespace lore
         {
             // synthesize optional non-greedy repedustion
             // this eats anything before the actual match
-            match_func(c, test_true);
+            match_func(c, TEST_TRUE);
             reduce_rep_opt(c, false);
         }
 

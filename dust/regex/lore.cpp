@@ -27,6 +27,67 @@ static unsigned reclevel = 0;
 
 namespace lore
 {
+    static bool test_white(CharType ch)
+    {
+        // this probably should call "iswhite()" or something
+        // but .. for now this is good enough
+        return (ch == ' ' || ch == '\n' 
+            || ch == '\t' || ch == '\r');
+    }
+
+    static bool test_digit(CharType ch)
+    {
+        return (ch >= '0' && ch <= '9');
+    }
+
+    static bool test_alnum(CharType ch)
+    {
+        return (ch >= 'A' && ch <= 'Z')
+            || (ch >= 'a' && ch <= 'z')
+            || (ch >= '0' && ch <= '9');
+    }
+
+    static bool test_word(CharType ch)
+    {
+        return ch == '_' || ch > 0x80 || test_alnum(ch);
+    }
+
+    // test function for anything (except CR/LF)
+    static bool test_not_crlf(CharType ch)
+    {
+        return (ch != '\n' && ch != '\r');
+    }
+
+    // this will match absolutely anything
+    // used to eat stuff when there is not ^ anchor
+    static bool test_true(CharType ch)
+    {
+        return true;
+    }
+
+    static bool call_test(TestFunc test, CharType ch)
+    {
+        switch(test)
+        {
+        case TEST_WHITE: return test_white(ch);
+        case TEST_NOT_WHITE: return !test_white(ch);
+        
+        case TEST_DIGIT: return test_digit(ch);
+        case TEST_NOT_DIGIT: return !test_digit(ch);
+        
+        case TEST_ALNUM: return test_alnum(ch);
+        case TEST_NOT_ALNUM: return !test_alnum(ch);
+        
+        case TEST_WORD: return test_word(ch);
+        case TEST_NOT_WORD: return !test_word(ch);
+
+        case TEST_NOT_CRLF: return test_not_crlf(ch);
+        case TEST_TRUE: return true;
+
+        default: return false;
+        }
+    }
+
     // queue for transition
     void Matcher::queueState(unsigned i, Submatch * s)
     {
@@ -173,7 +234,7 @@ namespace lore
                 }
                 for(unsigned j = 0; j < nFunc; ++j)
                 {
-                    if((cdata[0].fn)(peek))
+                    if(call_test(cdata[0].fn, peek))
                     {
                         match = true;
                         goto matchedClass;
@@ -192,7 +253,7 @@ matchedClass:   // label to allow breaking over all loops
             break;
         case STATE_FUNC:
             // do not allow functions to match EOF
-            if(peek != CharEOF && re.states[i].func.func(peek))
+            if(peek != CharEOF && call_test(re.states[i].func.func, peek))
                 queueState(re.states[i].func.next, clist[i]);
             else
                 clist[i]->release();

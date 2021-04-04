@@ -357,8 +357,18 @@ namespace lore
         STATE_COUNT
     };
 
-    // other internal types
-    typedef bool (*TestFunc)(CharType ch);
+    // NOTE: This used to be a function pointer, but in 64-bit that's
+    // less than ideal as it bloats the CData to twice the size and
+    // we only have finite number of classes to test anyway.
+    enum TestFunc
+    {
+        TEST_WHITE, TEST_NOT_WHITE,
+        TEST_DIGIT, TEST_NOT_DIGIT,
+        TEST_ALNUM, TEST_NOT_ALNUM,
+        TEST_WORD,  TEST_NOT_WORD,
+
+        TEST_NOT_CRLF, TEST_TRUE
+    };
 
     // ClassType is used to store data for [] classes
     //

@@ -119,10 +119,7 @@ namespace lore
                     }
 #endif
                     queueState(n0, s->addRef());
-                    // we process matches in queue state
-                    // so need to check if first path matched
-                    if(csize) queueState(n1, s);
-                    else s->release();
+                    queueState(n1, s);
                 }
                 break;
             case STATE_EMPTY:
@@ -165,25 +162,24 @@ namespace lore
             default:
                 // matches and anything that consumes input
                 nlist[i] = s;
-                nqueue[nsize++] = i;
+                nqueue.push_back(i);
             }
         }
     }
 
     // this does the main work
-    void Matcher::checkTransition(unsigned i)
+    bool Matcher::checkTransition(unsigned i)
     {
 #ifdef DEBUG_LORE_EVAL
         {
             dust::debugPrint("[%d] visit %d (state %p)\n",
                 reclevel, i, clist[i]);
         }
-#endif
-        assert(csize && clist[i]);
-
-#ifdef DEBUG_LORE_EVAL
+        assert(cqueue.size() && clist[i]);
         ++reclevel;
 #endif
+
+        bool fullMatch = false;
 
         // otherwise test
         switch(re.states[i].tag)
@@ -291,8 +287,7 @@ matchedClass:   // label to allow breaking over all loops
                 clist[j]->release();
                 clist[j] = 0;
             }
-            // cut the current queue
-            csize = 0;
+            fullMatch = true;
             break;
 
         default:
@@ -301,6 +296,8 @@ matchedClass:   // label to allow breaking over all loops
 #ifdef DEBUG_LORE_EVAL
         --reclevel;
 #endif
+
+        return fullMatch;
     }
 
     void Matcher::start(PositionType startPos)
@@ -327,8 +324,9 @@ matchedClass:   // label to allow breaking over all loops
 
         // create the initial sub-match array
         // put to nlist, due to the swap below
-        nsize = 0;
-        csize = 1;  // discarded, but need for queue
+        nqueue.clear();
+        cqueue.clear();
+
         queueState(re.first, new Submatch);
 
         // set started flag, so next() doesn't auto init
@@ -342,7 +340,7 @@ matchedClass:   // label to allow breaking over all loops
         if(!isStarted) start();
 
         // skip the swaps, etc if we don't have a state queue
-        if(!nsize) return true;
+        if(!nqueue.size()) return true;
 
 #ifdef DEBUG_LORE_EVAL
         {
@@ -359,18 +357,17 @@ matchedClass:   // label to allow breaking over all loops
         // transition next to current
         std::swap(clist, nlist);
         std::swap(cqueue, nqueue);
-        csize = nsize;
 
         // clear next queue
-        nsize = 0;
+        nqueue.clear();
 
-        for(unsigned i = 0; i < csize; ++i)
+        for(auto & state : cqueue)
         {
-            checkTransition(cqueue[i]);
+            if(checkTransition(state)) break;
         }
 
         // return true if nqueue is empty
-        return !nsize;
+        return !nqueue.size();
     }
 
 }; // namespace

@@ -569,19 +569,19 @@ namespace lore
         // current and next state
         // arrays of pointers to submatch candidates
         //  - null value means state is inactive
-        Submatch **clist;
-        Submatch **nlist;
+        std::vector<Submatch *> clist;
+        std::vector<Submatch *> nlist;
 
         // array of positions last visited position per state
-        unsigned *visited;
+        std::vector<unsigned> visited;
 
         // use private counter for visited, so we don't place
         // any internal requirements on position values
         PositionType stepIndex;
 
         // current and next queue with current sizes
-        unsigned *cqueue, csize;
-        unsigned *nqueue, nsize;
+        std::vector<unsigned> cqueue;
+        std::vector<unsigned> nqueue;
 
         // stored peak-ahead character
         CharType peek;
@@ -596,7 +596,10 @@ namespace lore
         // user calls start() explicitly on first use
         bool isStarted;
 
-        void checkTransition(unsigned i);
+        // returns true if we know we have a match
+        // and we should break out of the state loop
+        bool checkTransition(unsigned i);
+        
         void queueState(unsigned i, Submatch * s);
 
         // do not allow copies
@@ -604,18 +607,13 @@ namespace lore
     public:
         Matcher(const Regex & re) : re(re)
         {
-            // FIXME: this crap isn't exception safe
-            // should really convert to RAII internally
-            // want to keep it C++98 so need custom crap
-            //
-            // Fixing the on-the-fly Submatch allocs
-            // is kinda higher priority though, this
-            // note is here just as a reminder.
-            clist = new Submatch*[re.states.size()];
-            nlist = new Submatch*[re.states.size()];
-            visited = new unsigned[re.states.size()];
-            cqueue = new unsigned[re.states.size()];
-            nqueue = new unsigned[re.states.size()];
+            clist.resize(re.states.size());
+            nlist.resize(re.states.size());
+            
+            visited.resize(re.states.size());
+            
+            cqueue.reserve(re.states.size());
+            nqueue.reserve(re.states.size());
 
             for(unsigned i = 0; i < re.states.size(); ++i)
             {
@@ -626,7 +624,6 @@ namespace lore
             position = 0;
             best = 0;
 
-            csize = nsize = 0;
             isStarted = false;
         }
 
@@ -638,12 +635,6 @@ namespace lore
                 if(nlist[i]) nlist[i]->release();
             }
             if(best) best->release();
-
-            delete []clist;
-            delete []nlist;
-            delete []cqueue;
-            delete []nqueue;
-            delete []visited;
         }
 
         // start a new match from the given logical starting position

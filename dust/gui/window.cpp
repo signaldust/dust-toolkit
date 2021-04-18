@@ -1,12 +1,15 @@
 
 #include "window.h"
 
-// use Apple's client memory extension
-#define DUST_OPENGL_APPLE 1
-
 #if DUST_USE_OPENGL
-#include <opengl/gl3.h>
-#include "gl-shader.h"
+# if defined(__APPLE__)
+#  include <opengl/gl3.h>
+# elif defined(_WIN32)
+#  include <GL/gl3w.h>
+# else
+#  error "FIXME: GL headers for platform"
+# endif
+# include "gl-shader.h"
 #endif
 
 // seems gl3.h doesn't declare these

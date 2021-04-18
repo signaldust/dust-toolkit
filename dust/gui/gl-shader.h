@@ -2,7 +2,14 @@
 #pragma once
 
 // FIXME: this only works on macOS for now.. need to setup gl3w for Windows..
-#include <opengl/gl3.h>
+#if defined(__APPLE__)
+# include <opengl/gl3.h>
+#elif defined(_WIN32)
+# include <GL/gl3w.h>
+#else
+# error "FIXME: GL headers for platform"
+#endif
+
 #include <vector>
 
 #include "dust/core/defs.h"

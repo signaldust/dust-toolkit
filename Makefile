@@ -31,7 +31,13 @@ ifeq ($(OS),Windows_NT)
     
     LINKFLAGS := --rtlib=compiler-rt $(LIBRARY) -luser32 -lgdi32
 
-    CFLAGS += -D_CRT_SECURE_NO_WARNINGS -DDUST_USE_OPENGL=0
+    CFLAGS += -D_CRT_SECURE_NO_WARNINGS
+
+    #CFLAGS += -DDUST_USE_OPENGL=0
+
+    CFLAGS += -DDUST_USE_OPENGL=1 -Idust/libs/gl3w
+    LINKFLAGS += -lopengl32
+    PLATFORM_SOURCES := dust/libs/gl3w/gl3w.c
     
     BINEXT := .exe
 
@@ -76,6 +82,7 @@ endif
 # Automatically figure out source files
 LIB_SOURCES := $(wildcard dust/*/*.c)
 LIB_SOURCES += $(wildcard dust/*/*.cpp)
+LIB_SOURCES += $(PLATFORM_SOURCES)
 
 LIB_OBJECTS := $(patsubst %,$(DUST_BUILD)/%.o,$(LIB_SOURCES))
 LIB_DEPENDS := $(LIB_OBJECTS:.o=.d)

@@ -12,6 +12,8 @@
 !/dust/core
 !/dust/gui
 !/dust/libs
+!/dust/libs/gl3w
+!/dust/libs/gl3w/GL
 !/dust/regex
 !/dust/render
 !/dust/thread

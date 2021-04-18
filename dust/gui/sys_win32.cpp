@@ -3,11 +3,15 @@
 
 // enables styles .. both lines are required
 #define ISOLATION_AWARE_ENABLED 1
-#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Panels' "\
+#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' "\
     "version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #include <windows.h>
 #include <commctrl.h>
+
+#if DUST_USE_OPENGL
+# include "GL/gl3w.h"
+#endif
 
 #include "window.h"
 #include "key_scancode_win.h"
@@ -150,6 +154,7 @@ static struct WindowClass
         icc.dwICC = ICC_WIN95_CLASSES;
         // also init common controls here
         InitCommonControlsEx(&icc);
+
     }
 
     ~WindowClass()
@@ -165,6 +170,35 @@ static struct WindowClass
 
 } windowClass;
 
+#if DUST_USE_OPENGL
+namespace {
+    struct GLContext
+    {
+        HDC     hOldDC;
+        HGLRC   hOldRC;
+    
+        GLContext(HDC hdc, HGLRC hglrc)
+        {
+            hOldDC = wglGetCurrentDC();
+            hOldRC = wglGetCurrentContext();
+
+            wglMakeCurrent(hdc, hglrc);
+        }
+    
+        ~GLContext()
+        {
+            // always clear whatever errors we might have caused
+            glGetError();
+            wglMakeCurrent(hOldDC, hOldRC);
+        }
+    };
+};
+
+// this is not in our glext.h :(
+typedef BOOL (APIENTRY * PFNGLWGLSWAPINTERVALEXTPROC) (GLint interval);
+
+#endif
+
 using namespace dust;
 
 struct Win32Window : Window, Win32Callback
@@ -172,7 +206,11 @@ struct Win32Window : Window, Win32Callback
     WindowDelegate & delegate;
 
     HWND hwnd;
-    HDC hdc;    // set in WM_PAINT
+    HDC hdc;    // set in WM_PAINT (FIXME: in constructor for GL?)
+
+#if DUST_USE_OPENGL
+    HGLRC    hglrc;
+#endif
     
     // size info as set by client
     unsigned    minSizeX, minSizeY;
@@ -208,6 +246,36 @@ struct Win32Window : Window, Win32Callback
 		if(!parent) resize(w, h);
         
 		::SetTimer(hwnd, 0, 1000/60, 0);
+
+#if DUST_USE_OPENGL
+
+        hdc = GetDC(hwnd);
+
+        // opengl pixel format
+        PIXELFORMATDESCRIPTOR pfd;
+        ZeroMemory(&pfd, sizeof(pfd));
+        pfd.nSize = sizeof(pfd);
+        pfd.nVersion = 1;
+        pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+        pfd.iPixelType = PFD_TYPE_RGBA;
+        pfd.cColorBits = 24;
+        pfd.cAlphaBits = 8;
+        pfd.cDepthBits = 24;    // can we get stencil without depth bits?
+        pfd.cStencilBits = 8;   // want stencil bits
+        
+        int format;
+        format = ChoosePixelFormat(hdc, &pfd);
+        SetPixelFormat(hdc, format, &pfd);
+    
+        hglrc = wglCreateContext(hdc);
+
+        GLContext context(hdc, hglrc);
+        PFNGLWGLSWAPINTERVALEXTPROC wglSwapInterval
+        = (PFNGLWGLSWAPINTERVALEXTPROC) wglGetProcAddress("wglSwapIntervalEXT");
+        wglSwapInterval(0);
+        
+        gl3wInit();
+#endif
     }
 
     ~Win32Window()
@@ -219,9 +287,17 @@ struct Win32Window : Window, Win32Callback
 
         wheelHook.removeHook();
 
-        // drain components while we have our GL context
-        // FIXME: GLContext
-        ComponentSystem::destroyComponents(this);
+        {
+#if DUST_USE_OPENGL
+            GLContext   context(hdc, hglrc);
+#endif
+            // drain components while we have our GL context (if any)
+            ComponentSystem::destroyComponents(this);
+        }
+#if DUST_USE_OPENGL
+        wglDeleteContext(hglrc);
+        ReleaseDC(hwnd, hdc);
+#endif
     }
 
     LRESULT callback(HWND, UINT, WPARAM, LPARAM);
@@ -246,7 +322,6 @@ struct Win32Window : Window, Win32Callback
 	
 	void setTitle(const char * txt)
 	{
-        printf("Window title: %s\n", txt);
 		SetWindowTextA(hwnd, txt);
 	}
 	
@@ -464,17 +539,26 @@ LRESULT Win32Window::callback(
         // need to do this paintstruct stuff even with OpenGL
         // FIXME: OpenGL though..
         {
+#if DUST_USE_OPENGL
+            ValidateRect(hwnd, 0);
+            GLContext   context(hdc, hglrc);
+#else
             PAINTSTRUCT ps;
             hdc = BeginPaint(hwnd, &ps);
-
+            BeginPaint(hwnd, &ps);
+#endif
             RECT cRect;
             GetClientRect(hwnd, &cRect);
             int w = cRect.right - cRect.left;
             int h = cRect.bottom - cRect.top;
 			
             layoutAndPaint(w, h);
-
+            
+#if DUST_USE_OPENGL
+            SwapBuffers(hdc);
+#else
             EndPaint(hwnd, &ps);
+#endif
         }
         break;
 

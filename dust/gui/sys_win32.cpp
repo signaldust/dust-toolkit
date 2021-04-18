@@ -149,7 +149,7 @@ static struct WindowClass
         icc.dwSize = sizeof(icc);
         icc.dwICC = ICC_WIN95_CLASSES;
         // also init common controls here
-        InitCommonPanelsEx(&icc);
+        InitCommonControlsEx(&icc);
     }
 
     ~WindowClass()

@@ -619,6 +619,15 @@ LRESULT Win32Window::callback(
 
             MouseEvent ev(MouseEvent::tMove, x, y, getDragButton(), 0, keymods);
             sendMouseEvent(ev);
+
+            // track WM_MOUSELEAVE
+            TRACKMOUSEEVENT tme;
+            ZeroMemory(&tme, sizeof(tme));
+            tme.cbSize = sizeof(tme);
+            tme.dwFlags = TME_LEAVE;
+            tme.hwndTrack = hwnd;
+
+            TrackMouseEvent(&tme);
         }
         break;
 

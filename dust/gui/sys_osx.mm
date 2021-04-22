@@ -209,6 +209,7 @@ struct CocoaWindow : Window
             // make it actually black
             //[window setBackgroundColor: NSColor.blackColor];
             [window setTitlebarAppearsTransparent: TRUE];
+            [window setMovableByWindowBackground: TRUE];
 
             titleBar.setParent(this);
 
@@ -807,6 +808,13 @@ willPositionSheet:(NSWindow *)sheet
 
 -(void)mouseDown:(NSEvent*)event
 {
+    if([self convertPoint:[event locationInWindow] fromView:nil].y
+        < sysFrame->titleBar.size)
+    {
+        [[self window] performWindowDragWithEvent:event];
+        return;
+    }
+    
     MouseEvent ev = sysFrame->buildMouseEvent(
         self, event, 1, [event clickCount]);
 
@@ -938,7 +946,7 @@ willPositionSheet:(NSWindow *)sheet
     if (flags & NSAlternateKeyMask) modKeyState |= optionKey;
     modKeyState = (modKeyState >> 8) & 0xFF;
 
-    const size_t unicodeStringLength = 8;
+    const size_t unicodeStringLength = 16;
     UniChar unicodeString[unicodeStringLength];
     UniCharCount charCount;
 
@@ -970,7 +978,7 @@ willPositionSheet:(NSWindow *)sheet
     bool clean = true;
     for(auto * p = text; *p; ++p)
     {
-        if(*p == 0x7f || *p < 0x20) clean = false;
+        if(*p == 0x7f || *(uint8_t*)(p) < 0x20) clean = false;
 
     }
     if(clean) sysFrame->sendText(text);

@@ -25,6 +25,8 @@ ifeq ($(OS),Windows_NT)
     PLATFORM := Windows
     LIBRARY := $(DUST_BUILD)/$(DUST_LIB).lib
 
+    LINKDEP := $(LIBRARY)
+
     MAKEDIR := tools\win\mkdir-p.bat
     DUST_LINKLIB ?= llvm-lib /out:$(LIBRARY)
     CLEANALL := tools\win\rm-rf.bat $(DUST_BUILD)
@@ -48,6 +50,8 @@ else
     MAKEDIR := mkdir -p
     CLEANALL := rm -rf $(DUST_BUILD) && mkdir $(DUST_BUILD)
     
+    LINKDEP := $(LIBRARY)
+    
     # MacOSX specific
     ifeq ($(shell uname),Darwin)
         PLATFORM := MacOSX
@@ -68,6 +72,8 @@ else
         LINKFLAGS := -DDUST_COCOA_PREFIX=`uuidgen|sed -e 's/-/_/g'|sed -e 's/.*/_\0_/'`
         LINKFLAGS += $(CFLAGS) $(CXXFLAGS)
         LINKFLAGS += dust/gui/sys_osx.mm $(LIBRARY) $(LIBS)
+
+        LINKDEP += dust/gui/sys_osx.mm
         
         BINEXT := 
     endif
@@ -92,7 +98,7 @@ SRC_DEPENDS :=
 # automatic target generation for any subdirectory of programs/
 define ProjectTarget
  SRC_DEPENDS += $(patsubst %,$(DUST_BUILD)/%.d,$(wildcard $1*.cpp))
- $(DUST_BIN)/$(patsubst programs/%/,%,$1)$(BINEXT): $(LIBRARY) \
+ $(DUST_BIN)/$(patsubst programs/%/,%,$1)$(BINEXT): $(LINKDEP) \
     $(patsubst %,$(DUST_BUILD)/%.o,$(wildcard $1*.cpp))
 	@echo LINK $$@
 	@$(MAKEDIR) "bin"

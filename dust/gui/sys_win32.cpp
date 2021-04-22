@@ -3,8 +3,10 @@
 
 // enables styles .. both lines are required
 #define ISOLATION_AWARE_ENABLED 1
-#pragma comment(linker,"/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' "\
-    "version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+#pragma comment(linker,"/manifestdependency:\"type='win32' "\
+    "name='Microsoft.Windows.Common-Controls' "\
+    "version='6.0.0.0' processorArchitecture='*' "\
+    "publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #include <windows.h>
 #include <commctrl.h>
@@ -75,7 +77,10 @@ struct Win32WheelHook
 {
     void installHook(HWND hwnd)
     {
-        if(mouseHookActive || IsDebuggerPresent()) return;
+        // Don't install a hook if there's a debugger (freezes stuff on break)
+        // and don't bother if this is a top-level window (don't need one).
+        if(mouseHookActive || IsDebuggerPresent()
+        || !(GetWindowLong(hwnd, GWL_STYLE) & WS_CHILD)) return;
         
         mouseHookInstance = (HINSTANCE) GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
         hWheelHook = SetWindowsHookEx( WH_MOUSE_LL, 
@@ -619,6 +624,15 @@ LRESULT Win32Window::callback(
 
             MouseEvent ev(MouseEvent::tMove, x, y, getDragButton(), 0, keymods);
             sendMouseEvent(ev);
+
+            // track WM_MOUSELEAVE
+            TRACKMOUSEEVENT tme;
+            ZeroMemory(&tme, sizeof(tme));
+            tme.cbSize = sizeof(tme);
+            tme.dwFlags = TME_LEAVE;
+            tme.hwndTrack = hwnd;
+
+            TrackMouseEvent(&tme);
         }
         break;
 

@@ -209,7 +209,6 @@ struct CocoaWindow : Window
             // make it actually black
             //[window setBackgroundColor: NSColor.blackColor];
             [window setTitlebarAppearsTransparent: TRUE];
-            [window setMovableByWindowBackground: TRUE];
 
             titleBar.setParent(this);
 
@@ -811,7 +810,9 @@ willPositionSheet:(NSWindow *)sheet
     if([self convertPoint:[event locationInWindow] fromView:nil].y
         < sysFrame->titleBar.size)
     {
-        [[self window] performWindowDragWithEvent:event];
+        if(event.clickCount >= 2) [[self window] performZoom:nil];
+        // NOTE: This is 10.11+ but earlier should fail silent?
+        else [[self window] performWindowDragWithEvent:event];
         return;
     }
     

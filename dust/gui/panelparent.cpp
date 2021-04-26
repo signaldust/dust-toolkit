@@ -86,6 +86,9 @@ namespace dust
             RenderContext   rc(rcParent, rChild, true);
             if(rc.getClipRect().isEmpty()) continue;
 
+            // borrow maskData
+            MaskDataBorrow  borrow(rcParent, rc);
+
             c->render(rc);
             c->renderChildren(rc);
 #if DUST_DEBUG_LAYOUT

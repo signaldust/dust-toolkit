@@ -299,6 +299,7 @@ namespace dust
         Rect    clipRect;   // clipping rect, in surface coordinates
         int     offX, offY; // origin point, relative to surface
 
+        friend struct MaskDataBorrow;
         std::vector<Alpha>  maskData;
 
         // this is just used internally to avoid templating drawText
@@ -438,6 +439,28 @@ namespace dust
         float drawTextWithPaint(Font & font, IPaintGlyph & paint,
             const char *text, unsigned len,
             float x, float y, bool adjustLeft);
+    };
+
+    // Internal helper: used by PanelParent to borrow alphaMask from
+    // parent RenderContext to child RenderContext in order to reduce allocs
+    struct MaskDataBorrow
+    {
+        MaskDataBorrow(RenderContext & src, RenderContext & dst)
+            : src(src), dst(dst)
+        {
+            std::swap(src.maskData, dst.maskData);
+        }
+
+        ~MaskDataBorrow()
+        {
+            std::swap(src.maskData, dst.maskData);
+        }
+
+    private:
+        MaskDataBorrow(MaskDataBorrow const &) = delete;
+    
+        RenderContext & src;
+        RenderContext & dst;
     };
 
     

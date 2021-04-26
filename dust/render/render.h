@@ -187,11 +187,11 @@ namespace dust
                 clipRect.w(), clipRect.h());
 
             // allocate space for alpha
-            Alpha * maskData = new Alpha[r.w()*r.h()];
+            maskData.resize(r.w()*r.h());
             int maskPitch = r.w();
 
             // draw the shape
-            Alpha * maskPtr = maskData - r.x0 - maskPitch*r.y0;
+            Alpha * maskPtr = maskData.data() - r.x0 - maskPitch*r.y0;
             if(renderPathRef(p, r, fill,
                 maskPtr, maskPitch, quality, vScan))
             {
@@ -200,9 +200,6 @@ namespace dust
                 r.offset(offX, offY);
                 paint.paintRectMask(r, maskPtr - offX - maskPitch * offY, maskPitch);
             }
-
-            // release the mask
-            delete [] maskData;
         }
 
         // rasterize a stroke for a path and fill it using the specified paint
@@ -216,11 +213,11 @@ namespace dust
                 clipRect.w(), clipRect.h());
 
             // allocate space for alpha
-            Alpha * maskData = new Alpha[r.w()*r.h()];
+            maskData.resize(r.w()*r.h());
             int maskPitch = r.w();
 
             // draw the shape
-            Alpha * maskPtr = maskData - r.x0 - maskPitch*r.y0;
+            Alpha * maskPtr = maskData.data() - r.x0 - maskPitch*r.y0;
             if(strokePathRef(p, width, r, maskPtr, maskPitch, quality, vScan))
             {
                 // then do the fill
@@ -228,9 +225,6 @@ namespace dust
                 r.offset(offX, offY);
                 paint.paintRectMask(r, maskPtr - offX - maskPitch * offY, maskPitch);
             }
-
-            // release the mask
-            delete [] maskData;
         }
 
         // draw a glyph, position is the base-line pen position
@@ -304,6 +298,8 @@ namespace dust
         Surface &target;    // CPU render into a surface
         Rect    clipRect;   // clipping rect, in surface coordinates
         int     offX, offY; // origin point, relative to surface
+
+        std::vector<Alpha>  maskData;
 
         // this is just used internally to avoid templating drawText
         struct IPaintGlyph

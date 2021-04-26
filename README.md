@@ -81,10 +81,16 @@ Other than that, at this point, there isn't any documentation yet,
 but the header files are quite extensively commented.
 
 That said as a general rule-of-thumb the toolkit follows the principle that whoever creates
-an object/resource also owns it. For example, any `Control` can be placed in stack, heap,
-as member of another `Control` or some helper class. 
+an object/resource also owns it. For example, any `Panel` can be placed in stack, heap,
+as member of another `Panel` or some helper class, where as a `Window` (created by the toolkit)
+is owned by the toolkit (with lifetime generally associated with the lifetime of the underlying
+OS window).
 
-For the main toolkit, the best starting points are `dust/gui/control.h`, `dust/gui/window.h`
+In general, any interface taking pointers or references does not transfer objet ownership.
+This also applies to parent-child relationships of widgets: while these internally retain references
+such relationships are simply automatically disconnected if either the parent or the child is destroyed.
+
+For the main toolkit, the best starting points are `dust/gui/panel.h`, `dust/gui/window.h`
 and `dust/gui/app.h` and for the rendering pipeline you should start from `dust/render/render.h`.
 
 The whole thing is designed to be fairly modular: `core` is required by most things,

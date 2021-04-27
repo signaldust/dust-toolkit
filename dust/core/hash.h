@@ -129,11 +129,16 @@ namespace dust
             Slot & s = internalFind(i.getKey(), true);
             s.item = std::move(i);
 
-            // check for resize, multiply out the divides from:
-            //   (nSlots - nUsed) / nSlots < 1 / freeFactor
-            if((slots.size() - (++nUsed)) * freeFactor < slots.size())
+            if((s.hash&0x3) != slotInUse)
             {
-                resize(slots.size() << 1);
+                s.hash = slotInUse | (s.hash&~0x3);
+
+                // check for resize, multiply out the divides from:
+                //   (nSlots - nUsed) / nSlots < 1 / freeFactor
+                if((slots.size() - (++nUsed)) * freeFactor < slots.size())
+                {
+                    resize(slots.size() << 1);
+                }
             }
         }
         void insert(Item && i) { insert(i); }
@@ -232,7 +237,7 @@ namespace dust
                     if(doInsert)
                     {
                         // mark the slot as in use and set hash
-                        s.hash = slotInUse | (hash & ~(uint64_t)0x3);
+                        s.hash = slotFree | (hash & ~(uint64_t)0x3);
                     }
                     return s;
                 }
@@ -268,7 +273,7 @@ namespace dust
                     if(doInsert)
                     {
                         // mark the slot as in use and set hash
-                        s.hash = slotInUse | (hash & ~(uint64_t)0x3);
+                        s.hash = slotRemoved | (hash & ~(uint64_t)0x3);
                     }
                     return s;
                 }

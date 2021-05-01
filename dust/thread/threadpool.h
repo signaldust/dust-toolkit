@@ -13,6 +13,7 @@ namespace dust
     // Task interface for thread-pooling.
     struct ThreadTask
     {
+        virtual ~ThreadTask() {};
         virtual void threadpool_runtask() = 0;
     };
 

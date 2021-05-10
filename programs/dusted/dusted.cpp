@@ -8,6 +8,9 @@
 //  - syntax provider selection
 //  - auto-complete providers?
 //
+// clang -Wno-everything -x c++ -std=c++11 \
+//  -fsyntax-only -Xclang -code-completion-at -Xclang -:$line:$char -
+//
 // Should we auto-save all on build?
 //
 // We have basic file-watcher, but do we want to preserve undo?
@@ -330,8 +333,8 @@ static time_t getTimeForPath(const std::string & path)
 // we might want to put several of these side by side?
 struct Document : dust::Panel
 {
-    dust::ScrollPanel    scroll;
-    dust::TextArea       editor;
+    dust::ScrollPanel   scroll;
+    dust::TextArea      editor;
 
     std::string         path;
 
@@ -340,7 +343,7 @@ struct Document : dust::Panel
     time_t              mtimeFile;
 
     // FIXME: move save handling to appwindow?
-    dust::Notify         onSaveAs;
+    dust::Notify        onSaveAs;
 
     Document()
     {

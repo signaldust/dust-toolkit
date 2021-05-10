@@ -112,7 +112,8 @@ namespace dust
     // destroyed (eg. a Window is closed) the Panels will simply
     // become parentless until attached to another parent.
     //
-    // It is generally safe to destroy Panels at any time.
+    // It is generally safe to destroy Panels at any time, except
+    // during event-processing of sub-trees rooted on the Panel.
 
     struct Panel; // forward declare for PanelParent
     struct Window;  // forward declare for PanelParent

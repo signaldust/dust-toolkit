@@ -4,6 +4,7 @@
 #include <cstdio>
 #ifndef WIN32
 # include <sys/stat.h>
+# include <unistd.h>
 #else
 # include <io.h>
 #endif

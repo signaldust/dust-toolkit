@@ -63,7 +63,7 @@ namespace dust
             , offY(parent.offY + (offset ? clipTo.y0 : 0))
         {
             // clipTo is in parent coordinates so offset to surface
-            clipRect.clip(clipTo, parent.offX, parent.offY);;
+            clipRect.clip(clipTo, parent.offX, parent.offY);
         }
 
         // Construct a render context from existing context with

@@ -71,7 +71,7 @@ recommend opening an issue first to discuss what you want to do.
 
 Any pull-requests must compile as C++11 and should not contain excessive long lines of source
 code (aim at ~80 characters), tab-characters are strictly forbidden and `struct` should be
-used in place of `class` whenever possible.
+used in place of `class` whenever possible. Why these weird conventions? Because I'm weird.
 
 ## Where to start?
 

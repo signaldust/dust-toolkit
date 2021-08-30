@@ -55,7 +55,7 @@ In theory, type `make` and it will find all source files inside `dust/` and buil
 into a library, then similarly find all source files in each sub-directory of `programs`
 and build them into programs.
 
-This should work on macOS (targeting 10.9) and Windows (with `clang` in path).
+This should work on macOS (targeting 10.9 and later) and Windows (with `clang` in path).
 The `Makefile` includes `local.make` if such a file exists, in case you need local overrides.
 
 If you want to build using a build-system other than my `Makefile` then pretty much the

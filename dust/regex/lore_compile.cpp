@@ -349,7 +349,6 @@ namespace lore
         case 't': ch = '\t'; return false;
         case 'r': ch = '\r'; return false;
         case '0': ch = '\0'; return false;
-        case '\\': ch = '\\'; return false;
             // functions
         case 'd': tf = TEST_DIGIT; return true;
         case 'D': tf = TEST_NOT_DIGIT; return true;
@@ -359,7 +358,14 @@ namespace lore
         case 'W': tf = TEST_NOT_WORD; return true;
 
         default:
-            c.error = "Invalid escape";
+            // reserve alpha-numerics for future
+            // but allow anything else as literal escape
+            if((ch >= 'a' && ch <= 'z')
+            || (ch >= 'A' && ch <= 'Z')
+            || (ch >= '0' && ch <= '9'))
+            {
+                c.error = "Invalid escape";
+            }
             return false;
         }
     }

@@ -28,6 +28,8 @@ namespace
             if(!strcasecmp(ext, ".cpp")) return true;
             if(!strcasecmp(ext, ".cc")) return true;
             if(!strcasecmp(ext, ".cs")) return true;
+            if(!strcasecmp(ext, ".js")) return true;
+            if(!strcasecmp(ext, ".html")) return true;
             if(!strcasecmp(ext, ".java")) return true;
             if(!strcasecmp(ext, ".m")) return true;
             if(!strcasecmp(ext, ".mm")) return true;

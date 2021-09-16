@@ -257,7 +257,8 @@ namespace dust
         void ev_layout()
         {
             // we need to do this again here for overscroll to work
-            layoutAsRoot(getWindow()->getDPI());
+            // FIXME: hard-coding for size-computation here is a bit ugly
+            layoutAsRoot(getWindow() ? getWindow()->getDPI() : 96.f);
             updateScrollBars();
         }
 

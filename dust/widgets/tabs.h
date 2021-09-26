@@ -108,6 +108,10 @@ namespace dust
 
         void selectTab(unsigned n)
         {
+            // don't crash if we try to pick a tab past the last
+            if(!tabs.size()) return;
+            if(n >= tabs.size()) n = tabs.size() - 1;
+            
             activeTab = n;
             contentView.removeAllChildren();
             tabs[activeTab]->content.setParent(contentView);
@@ -284,6 +288,13 @@ namespace dust
 
                     if(e.button == 1)
                     {
+                        // we set last-active to the tab that was previously
+                        // active as-if the newly selected one was dragged out
+                        // this way we dragging an inactive tab to another panel
+                        // restores the originally active tab
+                        panel->lastActive = panel->activeTab;
+                        if(tab < panel->activeTab) --panel->lastActive;
+                        
                         panel->selectTab(tab);
                     }
 
@@ -318,9 +329,13 @@ namespace dust
                             // we push a null-tab to the other, do a swap
                             // then close the null-tab from current panel
                             next->tabs.push_back(std::unique_ptr<Tab>());
+                            next->lastActive = next->activeTab;
                             std::swap(next->tabs.back(),
                                 panel->tabs[panel->activeTab]);
                             panel->closeTab(0);
+                            // this is not necessarily valid anymore
+                            // but selectTab will clip as necessary
+                            panel->selectTab(panel->lastActive);
                             
                             // finally select the newly added tab and hand-off
                             next->selectTab(next->tabs.size() - 1);
@@ -376,5 +391,6 @@ namespace dust
         std::vector< std::unique_ptr<Tab> > tabs;
 
         unsigned    activeTab;
+        unsigned    lastActive; // for drag, see TabStrip mouse down
     };
 };

@@ -8,9 +8,9 @@ namespace dust
     // NOTE: we might want to cache this in GPU eventually
     class Surface
     {
-        ARGB    *pixels;
-        unsigned szX, szY, pitch;
-        bool    needUpdate;
+        ARGB    *pixels = 0;
+        unsigned szX = 0, szY = 0, pitch = 0;
+        bool    needUpdate = false;
 
     public:
         // create a new surface; defaults to zero area
@@ -20,6 +20,26 @@ namespace dust
         // create a new surface, loading an image file
         Surface(const std::vector<char> & fileContents);
 
+        // allow move construction
+        Surface(Surface && other)
+        {
+            std::swap(pixels, other.pixels);
+            std::swap(szX, other.szX);
+            std::swap(szY, other.szY);
+            std::swap(pitch, other.pitch);
+            std::swap(needUpdate, other.needUpdate);
+        }
+
+        // allow move assignment
+        void operator=(Surface && other)
+        {
+            std::swap(pixels, other.pixels);
+            std::swap(szX, other.szX);
+            std::swap(szY, other.szY);
+            std::swap(pitch, other.pitch);
+            std::swap(needUpdate, other.needUpdate);
+        }
+        
         ~Surface() { if(pixels) { delete [] pixels; } }
 
         // return current dimensions

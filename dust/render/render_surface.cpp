@@ -6,46 +6,6 @@
 
 using namespace dust;
 
-#include "dust/libs/picopng.h"
-
-// Image loader
-Surface::Surface(const std::vector<char> & fileContents)
-{
-    // zero init, in case we fail
-    this->pixels = 0;
-    this->pitch = 0;
-    this->szX = 0;
-    this->szY = 0;
-    
-    // sanity check that it's safe to parse magic
-    if (fileContents.size() < 4) return;
-
-    unsigned char pngMagic[4] = { 137, 'P', 'N', 'G' };
-
-    if (*reinterpret_cast<const unsigned*>(fileContents.data())
-        == *reinterpret_cast<const unsigned*>(pngMagic))
-    {
-        std::vector<unsigned char> image;
-        unsigned long width, height;
-        if(decodePNG(image, width, height,
-            (unsigned char*)fileContents.data(), fileContents.size())) return;
-
-        // unpack the data into an array and do byteswap
-        this->pixels = new unsigned[width*height];
-        this->pitch = width;
-        this->szX = width;
-        this->szY = height;
-
-        // need to shuffle, because picopng uses wrong order
-        for(unsigned i = 0; i < width*height; ++i)
-        {
-            this->pixels[i] = (image[i*4] << 16) | (image[i*4+1] << 8)
-                | (image[i*4+2]) | (image[i*4+3] << 24);
-        }
-
-    } else return; // add more loaders :P
-}
-
 // NOTES ON BLUR:
 //
 // for the reflection, assume that image is zero past the
@@ -303,3 +263,32 @@ void Surface::emboss(float h)
         }
     }
 }
+
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "dust/libs/stb_image.h"
+
+Surface::Surface(const std::vector<char> & fileContents)
+{
+    int w,h,n;
+    // let STBI convert to 4-channels (RGBA)
+    auto image = stbi_load_from_memory(
+        (const unsigned char*) fileContents.data(),
+        fileContents.size(), &w, &h, &n, 4);
+
+    if(!image) return;  // failure
+
+    this->pitch = w;
+    this->szX = w;
+    this->szY = h;
+
+    this->pixels = new unsigned[w*h];
+    for(int i = 0; i < w*h; ++i)
+    {
+        this->pixels[i] = (image[i*4] << 16) | (image[i*4+1] << 8)
+            | (image[i*4+2]) | (image[i*4+3] << 24);
+    }
+
+    stbi_image_free(image);
+}
+

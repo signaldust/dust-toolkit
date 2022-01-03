@@ -2,4 +2,4 @@
 *.ttf.h linguist-generated
 
 # Exclude included libs
-dust/libs/* linguist-vendored
+dust/libs/** linguist-vendored

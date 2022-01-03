@@ -1,0 +1,2 @@
+# Exclude the xxd dumps of TTF files from statistics
+*.ttf.h linguist-generated

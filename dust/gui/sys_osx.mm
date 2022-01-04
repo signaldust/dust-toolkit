@@ -807,8 +807,9 @@ willPositionSheet:(NSWindow *)sheet
 
 -(void)mouseDown:(NSEvent*)event
 {
-    if([self convertPoint:[event locationInWindow] fromView:nil].y
-        < sysFrame->titleBar.size)
+    if(sysFrame->titleBar.getParent()
+    && ([self convertPoint:[event locationInWindow] fromView:nil].y
+        < sysFrame->titleBar.size))
     {
         if(event.clickCount >= 2) [[self window] performZoom:nil];
         // NOTE: This is 10.11+ but earlier should fail silent?

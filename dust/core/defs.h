@@ -2,22 +2,32 @@
 #pragma once
 
 // set this to 1 to make debugPrint print stuff
+#ifndef DUST_DEBUG_PRINT
 #define DUST_DEBUG_PRINT 1
+#endif
 
 // set this to 1 to make DUST_TRACE produce output
 // is only has an effect if DUST_DEBUG_PRINT is enabled
+#ifndef DUST_DEBUG_TRACE
 #define DUST_DEBUG_TRACE 1
+#endif
 
 // set this to 1 to make last redraw visible
 // also enables debug printing of render times
+#ifndef DUST_DEBUG_REDRAWS
 #define DUST_DEBUG_REDRAWS 0
+#endif
 
 // set this to 1 to debug layouts
+#ifndef DUST_DEBUG_LAYOUT
 #define DUST_DEBUG_LAYOUT 0
+#endif
 
 // set this to 1 to enable scaling shortcut keys in window
 // this is intended for layout debugging only
+#ifndef DUST_SCALE_SHORTCUTS
 #define DUST_SCALE_SHORTCUTS 0
+#endif
 
 #ifdef _WIN32
 # define DUST_EXPORT __declspec(dllexport)

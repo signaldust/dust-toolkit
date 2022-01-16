@@ -134,8 +134,8 @@ namespace dust
 
     struct TreeViewDir : TreeViewNode
     {
-        std::vector<TreeViewDir*>   subDirs;
-        std::vector<TreeViewNode*>  files;
+        std::vector<std::unique_ptr<TreeViewDir>>   subDirs;
+        std::vector<std::unique_ptr<TreeViewNode>>  files;
 
         bool isOpen = false;
 
@@ -158,9 +158,6 @@ namespace dust
 
         void clear()
         {
-            for(auto & p : subDirs) { delete p; }
-            for(auto & p : files) { delete p; }
-
             subDirs.clear();
             files.clear();
         }
@@ -249,30 +246,38 @@ namespace dust
 
                 if(isDir)
                 {
-                    subDirs.push_back(
-                        new TreeViewDir(newPath, name, level + 1));
+                    subDirs.emplace_back(new TreeViewDir(newPath, name, level + 1));
                 }
                 else
                 {
-                    files.push_back(new TreeViewNode(newPath, name, level + 1));
+                    files.emplace_back(new TreeViewNode(newPath, name, level + 1));
                 }
             }
             
             closedir(dir);
 #endif
-            auto compareLabels = [](TreeViewNode * a, TreeViewNode * b)
+            auto compareDirs = [](
+                std::unique_ptr<TreeViewDir> const & a,
+                std::unique_ptr<TreeViewDir> const & b)
             {
                 return a->label < b->label;
             };
 
-            std::sort(subDirs.begin(), subDirs.end(), compareLabels);
+            std::sort(subDirs.begin(), subDirs.end(), compareDirs);
             for(auto & p : subDirs)
             {
                 p->setParent(this);
                 p->onSelect = onSelect;
             }
 
-            std::sort(files.begin(), files.end(), compareLabels);
+            auto compareFiles = [](
+                std::unique_ptr<TreeViewNode> const & a,
+                std::unique_ptr<TreeViewNode> const & b)
+            {
+                return a->label < b->label;
+            };
+
+            std::sort(files.begin(), files.end(), compareFiles);
             for(auto & p : files)
             {
                 p->setParent(this);

@@ -318,14 +318,6 @@ namespace dust
 #if DUST_USE_OPENGL
         needRecomposite = false;    // clear flag
 
-    #if 0
-        // clear as the very first thing
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(0, 0, w, h);
-        glClearColor(0,0,0,0);
-        glClear(GL_COLOR_BUFFER_BIT);
-    #endif
-
         WindowGL * gl = cm_WindowGL.getComponent(this);
 #endif
 

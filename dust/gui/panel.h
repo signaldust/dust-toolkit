@@ -364,27 +364,49 @@ namespace dust
     };
 
 #if 0
-    // Currently this exists for the purpose of documentation only
+    // Currently this is here for the purpose of documentation only.
+    //
     struct GLPanel : Panel
     {
         void render(RenderContext & rc)
         {
-            // we can render to the underlying OpenGL framebuffer:
+            // When the toolkit is configured to use OpenGL, the normal
+            // software rendered UI is composited on top of the OpenGL
+            // framebuffer whenever the window needs to be redrawn.
             //
-            //  1. clear the target area in software surface to transparent
-            //  2. ask RenderContext to setup scissoring
-            //  3. render with an offset transform using layout.windowOffset
-            //
-            // the one complication is that in order to do partial draws
-            // we need to also preserve the OpenGL framebuffer which means
-            // we should bounce all rendering through an FBO
-            //
-            // this means that either our RenderContext needs to know
-            // how to setup the FBO target or we must query Window for it
-            //
+            // In order to allow actual OpenGL rendering to be visible,
+            // one should first clear the relevant areas to transparent black.
+            rc.clear();
         }
 
-        virtual void renderGL() {}
+        void ev_update()
+        {
+            // OpenGL rendering, especially animated rendering, need not
+            // necessarily trigger an actual (software rendering) redraw.
+            //
+            // Instead, it is safe to render OpenGL directly from ev_update
+            // and then inform the window that the view should be recomposited.
+            //
+            renderGL();
+            getWindow()->recompositeGL();
+        }
+
+        // This method is not part of any interface.
+        void renderGL()
+        {
+            // The toolkit also maintains a separate FBO for OpenGL rendering
+            // such that OpenGL content is not lost on normal redraws.
+            //
+            // Window has a helper method to do the following:
+            //  - bind the backing FBO for OpenGL rendering as the framebuffer
+            //  - set viewport and scissors to the bounds of the requested control
+            //  - glEnable scissors testing
+            getWindow()->openGL(*this);
+
+            // let's paint the panel's region as green
+            glClearColor(0,1,0,0);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
     };
 #endif
 

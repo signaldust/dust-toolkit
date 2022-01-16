@@ -16,7 +16,7 @@ namespace dust
 
 
     // the KEYMOD_CMD is mapped to the standard command modifier
-    // on OSX this is the Command key, elsewhere usually Panel
+    // on OSX this is the Command key, elsewhere usually Control
     // often shortcuts are otherwise identical, so this is useful
 #ifdef __APPLE__
     static const uint8_t KEYMOD_CMD = KEYMOD_SYS;

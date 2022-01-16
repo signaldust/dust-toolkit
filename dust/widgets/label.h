@@ -22,10 +22,9 @@ namespace dust
             font.loadDefaultFont(8, 96.f);
         }
 
-        void recalculateSize()
+        void recalculateSize(float dpi)
         {
-            auto * win = getWindow();
-            if(!font.valid(win ? win->getDPI() : 96.f)) return;
+            if(!font.valid(dpi)) return;
 
             // calculate label size
             sizeX = (int) ceil(font->getTextWidth(txt));
@@ -37,7 +36,9 @@ namespace dust
         void setText(const char * txt)
         {
             this->txt = txt;
-            recalculateSize();
+            
+            auto * win = getWindow();
+            recalculateSize(win ? win->getDPI() : 96.f);
         }
 
         void setText(const std::string & txt){ setText(txt.c_str()); }
@@ -54,11 +55,22 @@ namespace dust
 
         void ev_dpi(float dpi)
         {
-            recalculateSize();
+            recalculateSize(dpi);
         }
 
-        int ev_size_x(float dpi) { return sizeX; }
-        int ev_size_y(float dpi) { return sizeY; }
+        int ev_size_x(float dpi)
+        {
+            if(!font.valid()) return 0;
+            if(font->parameters.dpi != dpi) recalculateSize(dpi);
+            return sizeX;
+        }
+        
+        int ev_size_y(float dpi)
+        {
+            if(!font.valid()) return 0;
+            if(font->parameters.dpi != dpi) recalculateSize(dpi);
+            return sizeY;
+        }
 
     private:
         std::string txt;

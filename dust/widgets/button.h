@@ -2,6 +2,7 @@
 #pragma once
 
 #include "dust/gui/panel.h"
+#include "dust/widgets/label.h"
 
 namespace dust
 {
@@ -154,5 +155,12 @@ namespace dust
                 if(!down) rc.fillPath(p, paint::Color(theme.bgMidColor));
             }
         }
+    };
+
+    struct TextButton : Button
+    {
+        Label   label;
+
+        TextButton() { label.setParent(this); }
     };
 };

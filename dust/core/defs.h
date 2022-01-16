@@ -82,6 +82,9 @@ namespace dust
     };
 
     // printf into std::string - not particularly fast
+#if defined(__clang__) || defined(__GNUC__)
+        __attribute__ ((format (printf, 1, 2)))
+#endif
     static inline std::string strf(const char * fmt, ...)
     {
         va_list va;
@@ -119,6 +122,9 @@ namespace dust
     //
     // since this is only intended for debugs it doesn't
     // make any effort to actually do things efficiently
+#if defined(__clang__) || defined(__GNUC__)
+        __attribute__ ((format (printf, 1, 2)))
+#endif
     static inline void debugPrint(const char * fmt, ...)
     {
 #if DUST_DEBUG_PRINT

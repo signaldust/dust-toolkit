@@ -324,13 +324,12 @@ namespace dust
             return window;
         }
 
-        // discard current window, next getWindow() call will cache
-        // only really useful internally
+        // discard cached pointer to a window, only useful internally
         void discardWindow() { window = 0; }
 
         // set whether the control should be visible
         //
-        // hidden controls still receive layout (if enabled)
+        // hidden (but enabled) controls still receive layout
         // but events and redraws ignore the control and it's children
         void setVisible(bool b)
         { if(visible == b) return; visible = b; redraw(); }
@@ -343,10 +342,10 @@ namespace dust
 
         bool getEnabled() { return enabled; }
 
-        // get next sibling if any
+        // get next sibling if any - FIXME: is this ideal?
         Panel * getSiblingNext() const { return siblingsNext; }
 
-        // get previous sibling if any
+        // get previous sibling if any - FIXME: is this ideal?
         Panel * getSiblingPrevious() const { return siblingsPrev; }
 
     private:

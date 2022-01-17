@@ -120,8 +120,11 @@ namespace dust
             destroyAll();
         }
 
-        template<typename Fn> void foreach(Fn && fn) { components.foreach((Fn&)fn); }
-        template<typename Fn> void foreach(Fn & fn) { components.foreach(fn); }
+        template<typename Fn> void foreach(Fn && fn) { foreach((Fn&)fn); }
+        template<typename Fn> void foreach(Fn & fn) {
+            auto visitor = [fn](ComponentMap & cm) { fn(cm.key, *cm.component); };
+            components.foreach(visitor);
+        }
 
         void destroyAll()
         {

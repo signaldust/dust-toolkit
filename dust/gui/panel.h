@@ -127,11 +127,12 @@ namespace dust
     {        
         virtual ~PanelParent();
 
+        // return current window or nullptr
         virtual Window * getWindow() = 0;
 
         // return true if we have children
         bool hasChildren() { return 0 != children.first; }
-
+        
         // remove all children (eg. used by closing windows)
         void removeAllChildren();
 
@@ -150,6 +151,7 @@ namespace dust
         virtual PanelParent * getParent() { return 0; }
 
         // recalculate all the window offsets for the layout tree
+        // this is called automatically whenever layout is updated
         void updateWindowOffsets();
 
         // request that a given point is scrolled into view
@@ -178,6 +180,12 @@ namespace dust
         {
             for(auto * c : children) visitor(c);
         }
+
+        // return first child or nullptr if none
+        Panel * getChildFirst() const { return children.first; }
+
+        // return previous sibling or nullptr if last
+        Panel * getChildLast() const { return children.last; }
 
     protected:
 
@@ -354,10 +362,10 @@ namespace dust
 
         bool getEnabled() { return enabled; }
 
-        // get next sibling if any - FIXME: is this ideal?
+        // return next sibling or nullptr if first
         Panel * getSiblingNext() const { return siblingsNext; }
 
-        // get previous sibling if any - FIXME: is this ideal?
+        // return previous sibling or nullptr if last
         Panel * getSiblingPrevious() const { return siblingsPrev; }
 
     private:

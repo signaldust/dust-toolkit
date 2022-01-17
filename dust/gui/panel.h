@@ -123,7 +123,7 @@ namespace dust
     //
     // Window also derives from this, but cannot have a parent.
     //
-    struct PanelParent : EventResponder, ComponentHost
+    struct PanelParent : EventResponder, virtual ComponentHost
     {        
         virtual ~PanelParent();
 

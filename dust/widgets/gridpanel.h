@@ -25,6 +25,7 @@ namespace dust
     //
     struct GridPanel : Panel
     {
+        const char * getName() override { return "GridPanel"; }
 
         GridPanel(unsigned nColumn) : nColumn(nColumn)
         {
@@ -212,6 +213,8 @@ namespace dust
 
         struct Column : Panel
         {
+            const char * getName() override { return "Grid Column"; }
+            
             float weight;
             Layout & getLayout() { return layout; }
 
@@ -224,6 +227,8 @@ namespace dust
 
         struct Cell : Panel
         {
+            const char * getName() override { return "Grid Cell"; }
+            
             Layout & getLayout() { return layout; }
         };
 

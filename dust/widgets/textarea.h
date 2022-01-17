@@ -43,6 +43,8 @@ namespace dust
     // supports "bunch of stuff" to make it a more realistic editor
     struct TextArea : Panel
     {
+        const char * getName() { return "TextArea"; }
+        
         // called when textarea gains focus
         Notify  onFocus = doNothing;
 

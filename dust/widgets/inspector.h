@@ -22,7 +22,6 @@ namespace dust
 {
     struct PanelInspector : Panel
     {
-        int         level;
         TextButton  button;
 
         Panel   childRoot;

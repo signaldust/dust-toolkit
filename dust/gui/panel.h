@@ -54,6 +54,18 @@ namespace dust
 
         } rule = INVALID;
 
+        // visualOnly advices automation that it does not make sense
+        // to provide access to this control through non-visual interface
+        //
+        // it should be set for panels that only exist for layout purposes,
+        // panels that only draw non-interactive visualisations and for
+        // panels that provided alternative visual interface for features
+        // where another interface more suited to automation is already present
+        //
+        // if the panel has children, then these should be presented directly
+        // as the children of it's first grand-parent not marked for visual only
+        bool visualOnly = false;
+
         // desired minimum size in points
         float minSizeX = 0, minSizeY = 0;
 
@@ -127,6 +139,13 @@ namespace dust
     {        
         virtual ~PanelParent();
 
+        // return a short, human-readable name for automation purposes
+        // FIXME: is there a better way to do this?
+        virtual const char * getName() = 0;
+
+        // return this as (Panel*), or return nullptr if not a Panel
+        virtual Panel * asPanel() { return 0; }
+        
         // return current window or nullptr
         virtual Window * getWindow() = 0;
 
@@ -284,6 +303,10 @@ namespace dust
         LayoutStyle style;
 
         ~Panel();
+        
+        const char * getName() { return "Panel"; }
+        
+        Panel * asPanel() { return this; }
 
         // request layout recalculation
         void reflow() { if(parent) parent->reflowChildren(); }

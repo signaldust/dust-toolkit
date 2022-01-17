@@ -27,6 +27,8 @@
 #include "dust/widgets/tabs.h"
 #include "dust/widgets/logview.h"
 
+#include "dust/widgets/inspector.h"
+
 #include "dust/regex/lore.h"
 
 #include "dusted-syntax.h"
@@ -67,6 +69,8 @@ namespace dust
         unsigned        level;
 
         int   sizeX, sizeY;
+
+        const char * getName() { return label.c_str(); }
 
         TreeViewNode(const std::string & path,
             const std::string & label, unsigned level)
@@ -289,11 +293,15 @@ namespace dust
 
 struct FileBrowser : dust::Panel
 {
+    const char * getName() { return "FileBrowser"; }
+    
     dust::ScrollPanel    scroll;
     dust::TreeViewDir    root;
 
     struct Filler : Panel
     {
+        const char * getName() { return "filler"; }
+        
         void render(dust::RenderContext & rc)
         {
             rc.clear(dust::theme.bgColor);
@@ -310,6 +318,8 @@ struct FileBrowser : dust::Panel
         root.setParent(scroll.getContent());
 
         filler.style.rule = dust::LayoutStyle::FILL;
+        filler.style.visualOnly = true;
+        
         filler.setParent(scroll.getContent());
     }
 };
@@ -439,6 +449,8 @@ struct NoDocument : dust::Panel
             // not doing hovers, so save CPU
             trackHover = false;
         }
+
+        const char * getName() { return "Create document"; }
         
         void render(dust::RenderContext & rc)
         {
@@ -454,6 +466,7 @@ struct NoDocument : dust::Panel
     NoDocument()
     {
         style.rule = dust::LayoutStyle::FILL;
+        style.visualOnly = true;
 
         scroll.setParent(this);
         background.setParent(scroll.getContent());
@@ -518,18 +531,20 @@ struct BuildScrollPanel : dust::ScrollPanel
 
 struct BuildPanel : dust::Panel
 {
+    const char * getName() { return "BuildPanel"; }
+    
     BuildScrollPanel    scroll;
 
-    dust::LogView        output;
+    dust::LogView       output;
 
     std::vector<char>   buffer;
     
-    dust::SlaveProcess   slave;
+    dust::SlaveProcess  slave;
     
-    dust::Panel        header;
-    dust::Button         buildButton;
-    dust::Label          buildButtonLabel;
-    dust::Label          status;
+    dust::Panel         header;
+    dust::Button        buildButton;
+    dust::Label         buildButtonLabel;
+    dust::Label         status;
     
     bool                buildActive = false;
     
@@ -943,6 +958,10 @@ struct AppWindow : dust::Panel
                 if(!panel.dragLink->getActiveTab()) newDocument(*panel.dragLink);
                 else panel.dragLink->getActiveTab()->onSelect();
             }
+            break;
+
+            case dust::SCANCODE_I:
+                dust::WindowInspector::openForWindow(getWindow());
             break;
             
             default: return false;

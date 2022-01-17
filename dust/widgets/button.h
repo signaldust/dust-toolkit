@@ -13,6 +13,8 @@ namespace dust
     {
         Notify onClick = doNothing;
 
+        const char * getName() override { return "Button"; }
+
         // if set to false, don't trigger redraw on hover change
         bool    trackHover = true;
 
@@ -161,6 +163,12 @@ namespace dust
     {
         Label   label;
 
-        TextButton() { label.setParent(this); }
+        TextButton()
+        {
+            label.setParent(this);
+            label.style.visualOnly = true;
+        }
+
+        const char * getName() override { return label.getText().c_str(); }
     };
 };

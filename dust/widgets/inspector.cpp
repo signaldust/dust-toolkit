@@ -31,25 +31,31 @@ void WindowInspector::refresh()
     {
         auto * ci = cm_PanelInspector.getComponent(c);
         ci->setParent(root);
-        ci->level = 0;
         ci->setTarget(c);
     };
 
     target->eachChild(builder);
 }
 
-void PanelInspector::setTarget(Panel * target)
+void PanelInspector::setTarget(Panel * _target)
 {
-    std::string str = strf("%p", target);
+    target = _target;
+    std::string str = strf("[%p] %s", target, target->getName());
+        
     button.label.setText(str);
+    button.label.color = target->style.visualOnly ? theme.selColor : theme.fgColor;
+
+    bool hideMe = target->style.visualOnly;
+    
+    setEnabled( !hideMe );
 
     style.padding.west = 9;
 
     auto builder = [this](Panel * c)
     {
         auto * ci = cm_PanelInspector.getComponent(c);
-        ci->setParent(childRoot);
-        ci->level = level + 1;
+
+        ci->setParent(getEnabled() ? childRoot : *getParent());
         ci->setTarget(c);
     };
 

@@ -136,20 +136,25 @@ namespace dust
             content.style.rule = LayoutStyle::FILL;
             content.style.canScrollX = true;
             content.style.canScrollY = true;
+            content.style.visualOnly = true;
 
             bottom.setParent(this);
             bottom.style.rule = LayoutStyle::SOUTH;
+            bottom.style.visualOnly = true;
 
             spacer.setParent(&bottom);
             spacer.style.rule = LayoutStyle::EAST;
             spacer.style.minSizeX = scrollbarSizePt;
             spacer.style.minSizeY = scrollbarSizePt;
+            spacer.style.visualOnly = true;
 
             hscroll.setParent(&bottom);
             hscroll.onScroll = [this]() { this->redraw(); };
+            hscroll.style.visualOnly = true;    // FIXME?
 
             vscroll.setParent(this);
             vscroll.onScroll = [this]() { this->redraw(); };
+            vscroll.style.visualOnly = true;    // FIXME?
 
             // usually makes sense to fill area
             style.rule = LayoutStyle::FILL;
@@ -157,6 +162,8 @@ namespace dust
             style.minSizeX = hscroll.style.minSizeX + spacer.style.minSizeX;
             style.minSizeY = vscroll.style.minSizeY + spacer.style.minSizeY;
         }
+
+        const char * getName() { return "ScrollPanel"; }
 
         // we don't actually draw anything, but we do lazy scroll-update
         // this way mouse-overscrolling is not sensitive to event report rate
@@ -304,6 +311,8 @@ namespace dust
     private:
         struct Content : Panel
         {
+            const char * getName() { return "ContentPanel"; }
+            
             // overscroll relative to viewport size
             // 0 means none, 1 means one full viewport
             float   overscrollX = 0;

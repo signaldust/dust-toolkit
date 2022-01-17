@@ -43,6 +43,10 @@ namespace dust
 
         void setText(const std::string & txt){ setText(txt.c_str()); }
 
+        std::string const & getText() const { return txt; }
+
+        const char * getName() { return getText().c_str(); }
+
         void render(RenderContext & rc)
         {
             if(!font.valid(getWindow()->getDPI())) return;

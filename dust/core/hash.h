@@ -66,8 +66,11 @@ namespace dust
         
         // this implements visitor pattern
         // calls fn(key, value) for each non-null pair
-        template <class Visitor>
-        void foreach(Visitor && fn)
+        template <typename Visitor>
+        void foreach(Visitor && fn) { foreach((Visitor&)fn); }
+
+        template <typename Visitor>
+        void foreach(Visitor & fn)
         {
             for(unsigned i = 0; i < slots.size(); ++i)
             {
@@ -279,7 +282,7 @@ namespace dust
                 }
             }
 
-            fprintf(stderr, "bjit::HashTable warning: probe failed\n");
+            debugPrint("hash.h: Table warning: probe failed\n");
 
             // if we are here then something is wrong with
             // our probing function.. but resize to play safe

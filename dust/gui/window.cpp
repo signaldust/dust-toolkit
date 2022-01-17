@@ -253,7 +253,7 @@ namespace dust
         }
     };
 
-    ComponentManager<WindowGL, Window> cm_WindowGL;
+    static ComponentManager<WindowGL, Window> cm_WindowGL;
 
     bool Window::openGL(Panel & ctl)
     {

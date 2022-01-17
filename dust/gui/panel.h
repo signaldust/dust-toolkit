@@ -118,13 +118,13 @@ namespace dust
     struct Panel; // forward declare for PanelParent
     struct Window;  // forward declare for PanelParent
 
-    // PanelParent contains the bulk of Panel's implementation,
+    // PanelParent contains the implementation of the Panel hierarchy,
     // with Panel itself simply adding the parenting logic.
     //
     // Window also derives from this, but cannot have a parent.
     //
-    struct PanelParent : EventResponder
-    {
+    struct PanelParent : EventResponder, ComponentHost
+    {        
         virtual ~PanelParent();
 
         virtual Window * getWindow() = 0;
@@ -173,7 +173,19 @@ namespace dust
             if(parent) parent->reflowChildren();
         }
 
+        template <typename Visitor>
+        void eachChild(Visitor & visitor)
+        {
+            for(auto * c : children) visitor(c);
+        }
+
     protected:
+
+        // there should never be any reason to create a PanelParent directly
+        PanelParent() {}
+        
+        // disallow any accidental copy-construction
+        PanelParent(PanelParent const &) = delete;
 
         // this contains layout information for the control
         // usually the automatic layout process manages this
@@ -258,7 +270,7 @@ namespace dust
     };
 
     // Base class for actual widgets
-    struct Panel : PanelParent, ComponentHost
+    struct Panel : PanelParent
     {
         // layout styles for this control
         LayoutStyle style;

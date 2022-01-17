@@ -69,7 +69,7 @@ namespace dust
     // NOTE: platform implementations are required to guarantee that
     // the GL context of the window is current when components are drained
     //
-    struct Window : PanelParent, ComponentHost
+    struct Window : PanelParent
     {
         // called by setScale()
         dust::Notify onScaleChange = dust::doNothing;

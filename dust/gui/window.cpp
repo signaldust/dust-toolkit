@@ -344,6 +344,9 @@ namespace dust
             needLayout = false;
             layoutAsRoot(getDPI());
 
+            broadcastAutomation(dia::reflow,
+                [this](DiaWindowClient * c) { c->dia_reflow(this); });
+
             // full repaint after layout
             //
             // we COULD skip this, if we tracked

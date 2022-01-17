@@ -289,6 +289,11 @@ struct Win32Window : Window, Win32Callback
         
         removeAllChildren();
         delegate.win_closed();
+        broadcastAutomation(dia::all,
+            [this](DiaWindowClient * c)
+            {
+                c->dia_closed((Window*)this);
+            });
 
         wheelHook.removeHook();
 

@@ -647,7 +647,17 @@ Window * dust::createWindow(WindowDelegate & delegate,
         sysFrame->removeTrackingArea();
 
         sysFrame->delegate.win_closed();
-
+        
+        // Clang treats [sysFrame] as invalid Obj-C method call
+        // so we need to use a temporary to capture in a C++ lambda
+        {
+            auto * window = (Window*)sysFrame;
+            sysFrame->broadcastAutomation(dia::all,
+                [window] (DiaWindowClient * c)
+                {
+                    c->dia_closed(window);
+                });
+        }
 #if DUST_USE_OPENGL
         // drain components with OpenGL context active
         NSOpenGLContext * glcOld = [NSOpenGLContext currentContext];

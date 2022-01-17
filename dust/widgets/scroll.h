@@ -184,13 +184,21 @@ namespace dust
                 reflow();
                 return;
             }
+
+            // window should always be valid here, but just in case
+            auto * win = getWindow();
+            if(!win) return;
             
             // do synchronous reflow, then request redraw
             // it would be really nice to delay this, but then
             // we would also need to delay scroll requests and
             // that's really not entirely reasonable
-            layoutAsRoot(getWindow()->getDPI());
+            layoutAsRoot(win->getDPI());
             updateScrollBars();
+            
+            // if we did local reflow, we should broadcast automation manually
+            win->broadcastAutomation(dia::all,
+                [win](DiaWindowClient * c) { c->dia_reflow(win); });
 
             redraw();
         }

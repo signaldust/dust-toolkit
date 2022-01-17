@@ -5,6 +5,7 @@
 #include "dust/core/component.h"
 
 #include "panel.h"
+#include "automation.h"
 
 namespace dust
 {
@@ -244,6 +245,36 @@ namespace dust
         virtual void recompositeGL() { needRecomposite = true; }
 #endif
 
+        // add or replace subscription for automation events
+        // if eventMask is zero, existing subscription is removed
+        void registerAutomation(DiaWindowClient * client, uint64_t eventMask)
+        {
+            if(eventMask)
+            {
+                auto * reg = cm_DiaClients.getComponent(client);
+                reg->eventMask = eventMask;
+            }
+            else
+            {
+                cm_DiaClients.destroyComponent(client);
+            }
+            client->dia_registered(this, eventMask);
+        }
+
+        template <typename Fn>
+        void broadcastAutomation(uint64_t eventMask, Fn && fn)
+        { broadcastAutomation(eventMask, (Fn&)fn); }
+        
+        template <typename Fn>
+        void broadcastAutomation(uint64_t eventMask, Fn & fn)
+        {
+            cm_DiaClients.foreach(
+                [eventMask, fn] (DiaWindowClient * c, DiaRegistration & r)
+                {
+                    if(r.eventMask & eventMask) fn(c);
+                });
+        }
+
     protected:
         // this should only be called by platform wrapper
         void layoutAndPaint(unsigned w, unsigned h);
@@ -252,9 +283,17 @@ namespace dust
         virtual void platformBlit(Surface &) = 0;
 #endif
 
-		// windows uses this to turn mouse moves into proper drags
+		// Windows uses this to turn mouse moves into proper drags
 		unsigned getDragButton() { return dragButton; }
 
+        // Track automation clients with a table, so that we can have multiple
+        // types active at the same time (eg. scripting, inspector, accessibility)
+        struct DiaRegistration
+        {
+            uint64_t    eventMask;
+        };
+        ComponentManager<DiaRegistration, DiaWindowClient> cm_DiaClients;
+       
     private:
         unsigned        dpiScalePercentage;
 

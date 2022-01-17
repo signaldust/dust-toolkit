@@ -120,7 +120,8 @@ namespace dust
             destroyAll();
         }
 
-        template<typename Fn> void foreach(Fn && fn) { components.foreach(fn); }
+        template<typename Fn> void foreach(Fn && fn) { components.foreach((Fn&)fn); }
+        template<typename Fn> void foreach(Fn & fn) { components.foreach(fn); }
 
         void destroyAll()
         {

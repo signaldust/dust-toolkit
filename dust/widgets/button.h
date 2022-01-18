@@ -9,7 +9,7 @@ namespace dust
     // ButtonBase implements the functionality of a basic button
     // it tracks mouse-over state but doesn't include rendering
     //
-    struct ButtonBase : Panel
+    struct ButtonBase : Panel, DiaInvoke
     {
         Notify onClick = doNothing;
 
@@ -17,6 +17,10 @@ namespace dust
 
         // if set to false, don't trigger redraw on hover change
         bool    trackHover = true;
+
+        // implement DiaInvoke
+        DiaInvoke * dia_queryInvoke() override { return this; }
+        void dia_invoke() override { onClick(); }
 
         ButtonBase()
         {

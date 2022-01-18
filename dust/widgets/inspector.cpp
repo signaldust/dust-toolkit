@@ -1,4 +1,6 @@
 
+#include "dust/core/component.h"
+
 #include "inspector.h"
 
 // HERE BE DRAGONS: this is totally "work-in-progress" and anything
@@ -46,10 +48,17 @@ void PanelInspector::setTarget(Panel * _target)
     button.label.color = target->style.visualOnly ? theme.selColor : theme.fgColor;
 
     bool hideMe = target->style.visualOnly;
-    
+
     setEnabled( !hideMe );
 
     style.padding.west = 9;
+    
+    if(!hideMe)
+    {
+        auto * invoke = target->dia_queryInvoke();
+        if(invoke) button.onClick = [invoke] () { invoke->dia_invoke(); };
+        else button.onClick = doNothing;
+    }
 
     auto builder = [this](Panel * c)
     {

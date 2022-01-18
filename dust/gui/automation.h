@@ -1,8 +1,6 @@
 
 #pragma once
 
-#include "dust/core/component.h"
-
 #include <cstdint>
 
 // HERE BE DRAGONS: this is totally "work-in-progress" and anything
@@ -11,7 +9,7 @@
 namespace dust
 {
     // DIA is the Dust Interface Automation framework
-    namespace dia
+    namespace dia   // FIXME: rename diaEvent?
     {
         // reflow events are sent whenever the layout is redone
         // which typically (but not always) means that something
@@ -23,17 +21,22 @@ namespace dust
 
         static const auto all           = ~uint64_t(0);
     }
-    
-    struct DiaWindowClient : virtual ComponentHost
+
+    // Our interfaces should more or less mirror those that are
+    // found in platform frameworks, even though these are internal.
+    struct DiaInvoke
     {
-        // this is always sent when a registration changes
-        virtual void dia_registered(Window *, uint64_t newMask) {}
+        virtual void dia_invoke() = 0;
+    };
 
-        // this is always sent to any registered clients
-        virtual void dia_closed(Window *) {}
+    // This is always inherited by PanelParent
+    struct DiaElement
+    {
+        virtual ~DiaElement() {}
 
-        // reflow events
-        virtual void dia_reflow(Window *) {}
+        // for each interface, we have an acessor that returns
+        // either a pointer to the interface or nullptr is unsupported
+        virtual DiaInvoke * dia_queryInvoke() { return 0; }
     };
 
 }

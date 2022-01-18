@@ -40,9 +40,29 @@ namespace dust
         virtual ~Menu() {}  // not really needed but fix clang warning
     };
 
+    // DiaWindowClient receives notifications for a Window.
+    //
+    // This works on the Window-level internally, because we typically
+    // expect clients to manage their own "shadow hierarchy" of elements.
+    //
+    // Declared here to avoid circular dependency.
+    struct DiaWindowClient : virtual ComponentHost
+    {
+        // this is always sent when a registration changes
+        virtual void dia_registered(Window *, uint64_t newMask) {}
+
+        // this is always sent to any registered clients
+        virtual void dia_closed(Window *) {}
+
+        // reflow events
+        virtual void dia_reflow(Window *) {}
+    };
+    
     // WindowDelegate provides callbacks for window lifetime notifications.
     struct WindowDelegate
     {
+        virtual ~WindowDelegate() {}
+        
         // called after a window is created
         virtual void win_created() {}
 

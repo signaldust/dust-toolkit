@@ -7,6 +7,7 @@
 #include "dust/render/render.h"
 
 #include "event.h"
+#include "automation.h"
 
 #include <list>
 
@@ -135,7 +136,8 @@ namespace dust
     //
     // Window also derives from this, but cannot have a parent.
     //
-    struct PanelParent : EventResponder, virtual ComponentHost
+    struct PanelParent
+    : EventResponder, DiaElement, virtual ComponentHost
     {        
         virtual ~PanelParent();
 

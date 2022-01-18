@@ -24,6 +24,23 @@ void WindowInspector::openForWindow(Window * window)
     
 }
 
+/*
+
+    FIXME:
+
+    The way we are doing a full refresh from scratch every time is obviously
+    total duct-tape and not how this should be done in the long run.
+
+    Instead, what we really want to do is compare the new UI tree to the previous
+    version (as represented by an existing inspector tree) and only reconstruct
+    sub-trees where something has actually changed.
+
+    In order to make this more efficient (and provide a handy method in general)
+    we might want to add methods to insert another panel before/after a given
+    sibling in it's parent's list of children.
+
+*/
+
 void WindowInspector::refresh()
 {
     auto * root = scroll.getContent();

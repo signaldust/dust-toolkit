@@ -143,11 +143,16 @@ namespace dust
 
         bool isOpen = false;
 
+        std::string diaLabel;
+        const char * dia_getName() { return diaLabel.c_str(); }
+
         TreeViewDir(const std::string & path,
             const std::string & name, unsigned level)
         : TreeViewNode(path, name, level)
         {
             onClick = [this](){ this->toggle(); };
+
+            diaLabel = "folder: " + name;
         }
 
         ~TreeViewDir() { clear(); }

@@ -138,6 +138,7 @@ struct CocoaWindow : Window
         TitleBar()
         {
             style.rule = LayoutStyle::NORTH;
+            style.visualOnly = true;
         }
 
         int ev_size_y(float dpi)

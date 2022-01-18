@@ -53,6 +53,25 @@ namespace dust
         void dia_doCollapse() { dia_setExpandState(false); }
     };
 
+    // This is like UIA IRangeValueProvider
+    struct DiaRanged
+    {
+        // FIXME: do we want to describe properties with a struct
+        // or do we want to have acessor functions for each of them?
+        //
+        virtual bool    dia_getRangedReadOnly() = 0;
+        
+        virtual double  dia_getRangedMin() = 0;
+        virtual double  dia_getRangedMax() = 0;
+
+        virtual double  dia_getRangedChangeSmall() = 0;
+        virtual double  dia_getRangedChangeLarge() = 0;
+
+        virtual double  dia_getRangedValue() = 0;
+        virtual void    dia_setRangedValue(double) = 0;
+
+    };
+
     // This is always inherited by PanelParent
     struct DiaElement
     {
@@ -66,6 +85,7 @@ namespace dust
         virtual DiaInvoke * dia_queryInvoke() { return 0; }
         virtual DiaToggle * dia_queryToggle() { return 0; }
         virtual DiaExpand * dia_queryExpand() { return 0; }
+        virtual DiaRanged * dia_queryRanged() { return 0; }
     };
 
 }

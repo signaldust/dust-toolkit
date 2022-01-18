@@ -48,6 +48,7 @@ void WindowInspector::refresh()
 
     auto builder = [root](Panel * c)
     {
+        if(!c->getEnabled() || !c->getVisible()) return;
         auto * ci = cm_PanelInspector.getComponent(c);
         ci->setParent(root);
         ci->setTarget(c);
@@ -79,6 +80,7 @@ void PanelInspector::setTarget(Panel * _target)
 
     auto builder = [this](Panel * c)
     {
+        if(!c->getEnabled() || !c->getVisible()) return;
         auto * ci = cm_PanelInspector.getComponent(c);
 
         ci->setParent(getEnabled() ? childRoot : *getParent());

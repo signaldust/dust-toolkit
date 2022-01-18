@@ -20,7 +20,7 @@ namespace dust
 
         // implement DiaInvoke
         DiaInvoke * dia_queryInvoke() override { return this; }
-        void dia_invoke() override { onClick(); }
+        void dia_doInvoke() override { onClick(); }
 
         ButtonBase()
         {

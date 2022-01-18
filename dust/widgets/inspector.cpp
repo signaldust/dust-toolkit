@@ -73,7 +73,7 @@ void PanelInspector::setTarget(Panel * _target)
     if(!hideMe)
     {
         auto * invoke = target->dia_queryInvoke();
-        if(invoke) button.onClick = [invoke] () { invoke->dia_invoke(); };
+        if(invoke) button.onClick = [invoke] () { invoke->dia_doInvoke(); };
         else button.onClick = doNothing;
     }
 

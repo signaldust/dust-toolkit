@@ -24,9 +24,33 @@ namespace dust
 
     // Our interfaces should more or less mirror those that are
     // found in platform frameworks, even though these are internal.
+    //
+
+    
+    // This is like UIA IInvokeProvider
     struct DiaInvoke
     {
-        virtual void dia_invoke() = 0;
+        virtual void dia_doInvoke() = 0;
+    };
+
+    // This is like UIA IToggleProvider
+    struct DiaToggle
+    {
+        virtual bool dia_getToggleState() = 0;
+        
+        virtual void dia_doToggle() = 0;
+    };
+
+    // This is like UIA IExpandCollapseProvider, except we simplify
+    // implementation by mapping expand/collapse to setExpanded
+    struct DiaExpand
+    {
+        virtual bool dia_getExpandState() = 0;
+        virtual void dia_setExpandState(bool) = 0;
+
+        // UIA compatible actions
+        void dia_doExpand() { dia_setExpandState(true); }
+        void dia_doCollapse() { dia_setExpandState(false); }
     };
 
     // This is always inherited by PanelParent
@@ -38,7 +62,10 @@ namespace dust
 
         // for each interface, we have an acessor that returns
         // either a pointer to the interface or nullptr is unsupported
+        
         virtual DiaInvoke * dia_queryInvoke() { return 0; }
+        virtual DiaToggle * dia_queryToggle() { return 0; }
+        virtual DiaExpand * dia_queryExpand() { return 0; }
     };
 
 }

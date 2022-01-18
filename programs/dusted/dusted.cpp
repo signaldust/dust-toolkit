@@ -136,7 +136,7 @@ namespace dust
 
     };
 
-    struct TreeViewDir : TreeViewNode
+    struct TreeViewDir : TreeViewNode, DiaToggle, DiaExpand
     {
         std::vector<std::unique_ptr<TreeViewDir>>   subDirs;
         std::vector<std::unique_ptr<TreeViewNode>>  files;
@@ -145,6 +145,16 @@ namespace dust
 
         std::string diaLabel;
         const char * dia_getName() { return diaLabel.c_str(); }
+
+        // DiaToggle
+        DiaToggle * dia_queryToggle() { return this; }
+        bool dia_getToggleState() { return isOpen; }
+        void dia_doToggle() { toggle(); }
+
+        // DiaExpand
+        DiaExpand * dia_queryExpand() { return this; }
+        bool dia_getExpandState() { return isOpen; }
+        void dia_setExpandState(bool b) { if(isOpen != b) toggle(); }
 
         TreeViewDir(const std::string & path,
             const std::string & name, unsigned level)

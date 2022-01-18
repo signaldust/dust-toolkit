@@ -141,10 +141,6 @@ namespace dust
     {        
         virtual ~PanelParent();
 
-        // return a short, human-readable name for automation purposes
-        // FIXME: is there a better way to do this?
-        virtual const char * getName() = 0;
-
         // return this as (Panel*), or return nullptr if not a Panel
         virtual Panel * asPanel() { return 0; }
         
@@ -306,7 +302,7 @@ namespace dust
 
         ~Panel();
         
-        const char * getName() { return "Panel"; }
+        const char * dia_getName() { return "Panel"; }
         
         Panel * asPanel() { return this; }
 

@@ -16,7 +16,7 @@ namespace dust
     template <typename Content, typename NoContent>
     struct TabPanel : Panel
     {
-        const char * getName() { return "TabPanel"; }
+        const char * dia_getName() { return "TabPanel"; }
         
         // this is really just the maximum size
         // we draw them smaller when we have too many
@@ -214,7 +214,7 @@ namespace dust
         {
             TabPanel    *panel;
 
-            const char * getName() { return "TabStrip"; }
+            const char * dia_getName() { return "TabStrip"; }
 
             void render(RenderContext & rc)
             {

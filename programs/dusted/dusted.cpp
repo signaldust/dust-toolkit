@@ -70,7 +70,7 @@ namespace dust
 
         int   sizeX, sizeY;
 
-        const char * getName() { return label.c_str(); }
+        const char * dia_getName() { return label.c_str(); }
 
         TreeViewNode(const std::string & path,
             const std::string & label, unsigned level)
@@ -293,14 +293,14 @@ namespace dust
 
 struct FileBrowser : dust::Panel
 {
-    const char * getName() { return "FileBrowser"; }
+    const char * dia_getName() { return "FileBrowser"; }
     
     dust::ScrollPanel    scroll;
     dust::TreeViewDir    root;
 
     struct Filler : Panel
     {
-        const char * getName() { return "filler"; }
+        const char * dia_getName() { return "filler"; }
         
         void render(dust::RenderContext & rc)
         {
@@ -450,7 +450,7 @@ struct NoDocument : dust::Panel
             trackHover = false;
         }
 
-        const char * getName() { return "Create document"; }
+        const char * dia_getName() { return "Create document"; }
         
         void render(dust::RenderContext & rc)
         {
@@ -531,7 +531,7 @@ struct BuildScrollPanel : dust::ScrollPanel
 
 struct BuildPanel : dust::Panel
 {
-    const char * getName() { return "BuildPanel"; }
+    const char * dia_getName() { return "BuildPanel"; }
     
     BuildScrollPanel    scroll;
 

@@ -13,7 +13,7 @@ namespace dust
     {
         Notify onClick = doNothing;
 
-        const char * getName() override { return "Button"; }
+        const char * dia_getName() override { return "Button"; }
 
         // if set to false, don't trigger redraw on hover change
         bool    trackHover = true;
@@ -173,6 +173,6 @@ namespace dust
             label.style.visualOnly = true;
         }
 
-        const char * getName() override { return label.getText().c_str(); }
+        const char * dia_getName() override { return label.getText().c_str(); }
     };
 };

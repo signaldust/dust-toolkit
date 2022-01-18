@@ -96,7 +96,7 @@ namespace dust
         dust::Notify onScaleChange = dust::doNothing;
 
         // FIXME: make this an std::string that can be changed?
-        virtual const char * getName() { return "Window"; }
+        virtual const char * dia_getName() { return "Window"; }
     
         // close the window
         virtual void closeWindow() = 0;

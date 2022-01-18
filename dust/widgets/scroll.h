@@ -163,7 +163,7 @@ namespace dust
             style.minSizeY = vscroll.style.minSizeY + spacer.style.minSizeY;
         }
 
-        const char * getName() { return "ScrollPanel"; }
+        const char * dia_getName() { return "ScrollPanel"; }
 
         // we don't actually draw anything, but we do lazy scroll-update
         // this way mouse-overscrolling is not sensitive to event report rate
@@ -311,7 +311,7 @@ namespace dust
     private:
         struct Content : Panel
         {
-            const char * getName() { return "ContentPanel"; }
+            const char * dia_getName() { return "ContentPanel"; }
             
             // overscroll relative to viewport size
             // 0 means none, 1 means one full viewport

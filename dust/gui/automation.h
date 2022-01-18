@@ -34,6 +34,8 @@ namespace dust
     {
         virtual ~DiaElement() {}
 
+        virtual const char * dia_getName() = 0;
+
         // for each interface, we have an acessor that returns
         // either a pointer to the interface or nullptr is unsupported
         virtual DiaInvoke * dia_queryInvoke() { return 0; }

@@ -42,7 +42,7 @@ void WindowInspector::refresh()
 void PanelInspector::setTarget(Panel * _target)
 {
     target = _target;
-    std::string str = strf("[%p] %s", target, target->getName());
+    std::string str = strf("[%p] %s", target, target->dia_getName());
         
     button.label.setText(str);
     button.label.color = target->style.visualOnly ? theme.selColor : theme.fgColor;

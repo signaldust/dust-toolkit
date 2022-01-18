@@ -15,7 +15,7 @@ namespace dust
     // FIXME: should really merge the two into one?
     struct TextBox : Panel
     {
-        const char * getName() { return "TextBox"; }
+        const char * dia_getName() { return "TextBox"; }
     
         Notify  onEnter = doNothing;
         Notify  onShiftEnter = [this](){ onEnter(); };

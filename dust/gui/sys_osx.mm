@@ -711,7 +711,11 @@ willPositionSheet:(NSWindow *)sheet
     if(sysFrame->needsRepaint())
     {
         [self setNeedsDisplay:TRUE];
-        [self displayIfNeeded];
+
+        // FIXME: not sure why we had this here, leave it as comment for now
+        // in case there are regressions; it seems we should take it out though
+        // 'cos it leads to an extra draw as it doesn't seem to clear the flag
+        //[self displayIfNeeded];
     }
 }
 

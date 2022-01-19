@@ -40,6 +40,26 @@ namespace dust
         else { children.first = c; }
     }
 
+    void PanelParent::addChildAfter(Panel * c, Panel * after)
+    {
+        if(!after)
+        {
+            c->siblingsNext = children.first;
+            children.first = c;
+        }
+        else
+        {
+            assert(after->getParent() == this);
+
+            c->siblingsPrev = after;
+            c->siblingsNext = after->siblingsNext;
+            after->siblingsNext = c;
+        }
+        
+        if(c->siblingsNext) { c->siblingsNext->siblingsPrev = c; }
+        else { children.last = c; }
+    }
+
     // See notes in header
     void PanelParent::removeChild(Panel * c)
     {

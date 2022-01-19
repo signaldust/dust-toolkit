@@ -245,6 +245,10 @@ namespace dust
         void addChild(Panel * c);
         void removeChild(Panel * c);
 
+        // internally used by Panel - add newChild after afterPanel
+        // if afterPanel is null, then newChild becomes the first child
+        void addChildAfter(Panel * newChild, Panel * after);
+
         // NOTES: We originally used simple std::list for these
         // but intrusive is preferable for several reasons:
         //
@@ -355,8 +359,22 @@ namespace dust
         // since we often want to use references, make it possible
         void setParent(PanelParent & newParent) { setParent(&newParent); }
 
+        // set parent to that of the other Panel and if the new
+        // parent is non-null, then place this Panel before other Panel
+        void insertBefore(Panel * other);
+
+        // set parent to that of the other Panel and if the new
+        // parent is non-null, then place this Panel after other Panel
+        void insertAfter(Panel * other);
+        
         // return the current parent of this control or null if none
         PanelParent * getParent() { return parent; }
+
+        // return next sibling or nullptr if first
+        Panel * getSiblingNext() const { return siblingsNext; }
+
+        // return previous sibling or nullptr if last
+        Panel * getSiblingPrevious() const { return siblingsPrev; }
 
         // return the current window if there is one at the root
         // of the UI tree this control is part of
@@ -382,12 +400,6 @@ namespace dust
         { if(enabled == b) return; enabled = b; reflow(); }
 
         bool getEnabled() { return enabled; }
-
-        // return next sibling or nullptr if first
-        Panel * getSiblingNext() const { return siblingsNext; }
-
-        // return previous sibling or nullptr if last
-        Panel * getSiblingPrevious() const { return siblingsPrev; }
 
     private:
         Window * window = 0;    // cached window

@@ -348,6 +348,7 @@ namespace dust
         // since it adds additional overhead and results in more render()
         // calls to parents that overlap with multiple disjoint rectangles
         //
+        // FIXME: should we just make this the default?
         void redraw(bool allowExtraPass = false);
 
         // short-hand for setting keyboard focus to the control

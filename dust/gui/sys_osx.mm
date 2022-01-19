@@ -403,6 +403,12 @@ struct CocoaWindow : Window
         }
     }
 
+    void doTimerUpdate()
+    {
+        updateWindowTimeDelta();
+       	updateAllChildren();
+    }
+
     void removeTrackingArea()
     {
         if(tracking)
@@ -708,7 +714,7 @@ willPositionSheet:(NSWindow *)sheet
     [[self openGLContext] makeCurrentContext];
 #endif
 
-   	sysFrame->updateAllChildren();
+    sysFrame->doTimerUpdate();
 
 #if DUST_USE_OPENGL
     int e = glGetError();

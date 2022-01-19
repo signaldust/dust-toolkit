@@ -129,6 +129,10 @@ namespace dust
         // but in some cases one might want to set it higher
         virtual void setUpdateRate(unsigned msTick) {}
 
+        // get current (measured) time between updates
+        // this is indended for framerate independent animation
+        unsigned getUpdateDeltaMs() { return updateTimeDeltaMs; }
+
         // set minimum size - default is initial size
         // this is passed directly to operating system
         virtual void setMinSize(int w, int h) = 0;
@@ -316,9 +320,20 @@ namespace dust
             uint64_t    eventMask;
         };
         ComponentManager<DiaRegistration, DiaWindowClient> cm_DiaClients;
-       
+
+        void updateWindowTimeDelta()
+        {
+            unsigned timeMs = getTimeMs();
+            // cap time delta to 100ms no matter what
+            updateTimeDeltaMs = std::min(updateTimeLastMs - timeMs, 100u);
+            updateTimeLastMs = timeMs - updateTimeDeltaMs;
+        }
+        
     private:
         unsigned        dpiScalePercentage;
+
+        unsigned        updateTimeDeltaMs = 0;
+        unsigned        updateTimeLastMs = 0;
 
         bool            needLayout;
 

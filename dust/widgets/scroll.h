@@ -167,18 +167,53 @@ namespace dust
 
         // we don't actually draw anything, but we do lazy scroll-update
         // this way mouse-overscrolling is not sensitive to event report rate
+        //
         void render(RenderContext &)
         {
+            // FIXME: is it safe to delay this until render?
+            if(needLocalReflow) layoutChildren();
+        
             int x = hscroll.getPosition(), y = vscroll.getPosition();
             auto & cl = content.getLayout();
 
             // early out
             if(cl.contentOffsetX == -x && cl.contentOffsetY == -y) return;
 
-            // redraw
-            cl.contentOffsetX = -x;
-            cl.contentOffsetY = -y;
+            if(0)
+            {
+                // FIXME: this is still sensitive to redraw rate
+                // The smooth scrolling version below should be better
+                cl.contentOffsetX = -x;
+                cl.contentOffsetY = -y;
+            }
+            else
+            {
+                // smooth scroll.. get actual update time for
+                // more or less framerate independent scrolling
+                auto timeDeltaMs = getWindow()->getUpdateDeltaMs();
+                
+                // somewhere around 100ms this starts to feel sluggish
+                // so we pick time constant at 50ms to try and stay snappy
+                float delta = std::exp2(timeDeltaMs * (-1.f / 50.f));
+
+                // convert to approximate integer fraction
+                int iDeltaDiv = 1000;
+                int iDelta = (int)(delta * iDeltaDiv);
+
+                int deltaX = cl.contentOffsetX + x;
+                int deltaY = cl.contentOffsetY + y;
+
+                // this effectively rounds up
+                deltaX -= (deltaX * iDelta) / iDeltaDiv;
+                deltaY -= (deltaY * iDelta) / iDeltaDiv;
+
+                cl.contentOffsetX -= deltaX;
+                cl.contentOffsetY -= deltaY;
+            }
             content.updateWindowOffsets();
+
+            // do we need a further redraw to complete smooth scroll?
+            if(cl.contentOffsetX != -x || cl.contentOffsetY != -y) redraw();
         }
 
         void reflowChildren()
@@ -192,21 +227,7 @@ namespace dust
                 return;
             }
 
-            // window should always be valid here, but just in case
-            auto * win = getWindow();
-            if(!win) return;
-            
-            // do synchronous reflow, then request redraw
-            // it would be really nice to delay this, but then
-            // we would also need to delay scroll requests and
-            // that's really not entirely reasonable
-            layoutAsRoot(win->getDPI());
-            updateScrollBars();
-            
-            // if we did local reflow, we should broadcast automation manually
-            win->broadcastAutomation(dia::all,
-                [win](DiaWindowClient * c) { c->dia_reflow(win); });
-
+            needLocalReflow = true;
             redraw();
         }
 
@@ -275,6 +296,8 @@ namespace dust
             // FIXME: hard-coding for size-computation here is a bit ugly
             layoutAsRoot(getWindow() ? getWindow()->getDPI() : 96.f);
             updateScrollBars();
+
+            needLocalReflow = false;
         }
 
         bool ev_mouse(const MouseEvent & e)
@@ -336,8 +359,31 @@ namespace dust
             }
         };
 
+        void layoutChildren()
+        {
+            // window should always be valid here, but just in case
+            auto * win = getWindow();
+            if(!win) return;
+
+            // do synchronous reflow, then request redraw
+            // it would be really nice to delay this, but then
+            // we would also need to delay scroll requests and
+            // that's really not entirely reasonable
+            layoutAsRoot(win->getDPI());
+            updateScrollBars();
+            
+            // if we did local reflow, we should broadcast automation manually
+            win->broadcastAutomation(dia::all,
+                [win](DiaWindowClient * c) { c->dia_reflow(win); });
+
+            needLocalReflow = false;
+        }
+        
+
         Content     content;
         Panel       bottom, spacer;
+
+        bool        needLocalReflow = false;
 
         ScrollbarV  vscroll;
         ScrollbarH  hscroll;

@@ -527,6 +527,7 @@ LRESULT Win32Window::callback(
         break;
 
     case WM_TIMER:
+        updateWindowTimeDelta();
         updateAllChildren();
         if(needsRepaint())
         {

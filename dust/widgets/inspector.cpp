@@ -8,7 +8,7 @@
 
 using namespace dust;
 
-static ComponentManager<PanelInspector, Panel>  cm_PanelInspector;
+static ComponentManager<ElementInspector, DiaElement>  cm_ElementInspector;
 static ComponentManager<WindowInspector, Window> cm_WindowInspector;
 
 void WindowInspector::openForWindow(Window * window)
@@ -41,32 +41,38 @@ void WindowInspector::openForWindow(Window * window)
 
 */
 
+static void buildSubtree(DiaElement * target, PanelParent & parent)
+{
+    auto * c = target->dia_getChildFirst();
+    while(c)
+    {
+        if(c->dia_isVisible())
+        {
+            auto * ci = cm_ElementInspector.getComponent(c);
+            ci->setParent(parent);
+            ci->setTarget(c);
+        }
+        c = c->dia_getSiblingNext();
+    }
+}
+
 void WindowInspector::refresh()
 {
     auto * root = scroll.getContent();
     root->removeAllChildren();
-
-    auto builder = [root](Panel * c)
-    {
-        if(!c->getEnabled() || !c->getVisible()) return;
-        auto * ci = cm_PanelInspector.getComponent(c);
-        ci->setParent(root);
-        ci->setTarget(c);
-    };
-
-    target->eachChild(builder);
+    buildSubtree(target, *root);
 }
 
-void PanelInspector::setTarget(Panel * _target)
+void ElementInspector::setTarget(DiaElement * _target)
 {
     target = _target;
     std::string str = strf("[%p] %s", target, target->dia_getName());
         
     button.label.setText(str);
-    button.label.color = target->style.visualOnly ? theme.selColor : theme.fgColor;
 
-    bool hideMe = target->style.visualOnly;
+    bool hideMe = target->dia_visualOnly();
 
+    //button.label.color = hideMe ? theme.selColor : theme.fgColor;
     setEnabled( !hideMe );
 
     style.padding.west = 9;
@@ -78,15 +84,6 @@ void PanelInspector::setTarget(Panel * _target)
         else button.onClick = doNothing;
     }
 
-    auto builder = [this](Panel * c)
-    {
-        if(!c->getEnabled() || !c->getVisible()) return;
-        auto * ci = cm_PanelInspector.getComponent(c);
-
-        ci->setParent(getEnabled() ? childRoot : *getParent());
-        ci->setTarget(c);
-    };
-
     childRoot.removeAllChildren();
-    target->eachChild(builder);
+    buildSubtree(target, getEnabled() ? childRoot : *getParent());
 }

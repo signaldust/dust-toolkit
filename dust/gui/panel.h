@@ -136,8 +136,7 @@ namespace dust
     //
     // Window also derives from this, but cannot have a parent.
     //
-    struct PanelParent
-    : EventResponder, DiaElement, virtual ComponentHost
+    struct PanelParent : EventResponder, DiaElement
     {        
         virtual ~PanelParent();
 
@@ -198,11 +197,9 @@ namespace dust
             for(auto * c : children) visitor(c);
         }
 
-        // return first child or nullptr if none
-        Panel * getChildFirst() const { return children.first; }
-
-        // return previous sibling or nullptr if last
-        Panel * getChildLast() const { return children.last; }
+        // Dia tree-navigation
+        DiaElement * dia_getChildFirst();
+        DiaElement * dia_getChildLast();
 
     protected:
 
@@ -371,11 +368,13 @@ namespace dust
         // return the current parent of this control or null if none
         PanelParent * getParent() { return parent; }
 
-        // return next sibling or nullptr if first
-        Panel * getSiblingNext() const { return siblingsNext; }
-
-        // return previous sibling or nullptr if last
-        Panel * getSiblingPrevious() const { return siblingsPrev; }
+        // Dia tree-navigation
+        bool dia_isVisible() { return enabled && visible; }
+        bool dia_visualOnly() { return style.visualOnly; }
+        
+        DiaElement * dia_getParent() { return parent; }
+        DiaElement * dia_getSiblingNext() { return siblingsNext; }
+        DiaElement * dia_getSiblingPrevious() { return siblingsPrev; }
 
         // return the current window if there is one at the root
         // of the UI tree this control is part of

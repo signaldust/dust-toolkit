@@ -20,15 +20,15 @@
 
 namespace dust
 {
-    struct PanelInspector : Panel
+    struct ElementInspector : Panel
     {
         TextButton  button;
 
         Panel   childRoot;
 
-        Panel * target;
+        DiaElement * target;
 
-        PanelInspector()
+        ElementInspector()
         {
             style.rule = LayoutStyle::NORTH;
 
@@ -39,7 +39,7 @@ namespace dust
             button.style.rule = LayoutStyle::WEST;
         }
 
-        void setTarget(Panel * target);
+        void setTarget(DiaElement * target);
 
         void render(RenderContext & rc)
         {

@@ -73,11 +73,29 @@ namespace dust
     };
 
     // This is always inherited by PanelParent
-    struct DiaElement
+    //
+    // FIXME: we probably need an explicit tree-navigation here
+    // in order to allow elements that are not Panels?
+    struct DiaElement : virtual ComponentHost
     {
         virtual ~DiaElement() {}
 
         virtual const char * dia_getName() = 0;
+
+        virtual bool dia_isVisible() = 0;
+
+        // if this returns true, we flatten the element from the
+        // automation hierarchy; we provide a default here because
+        // this flag typically only makes sense for Panels
+        virtual bool dia_visualOnly() { return false; }
+
+        // navigation: all of these return nullptr when
+        // the requested element doesn't exist
+        virtual DiaElement * dia_getParent() = 0;
+        virtual DiaElement * dia_getChildFirst() = 0;
+        virtual DiaElement * dia_getChildLast() = 0;
+        virtual DiaElement * dia_getSiblingNext() = 0;
+        virtual DiaElement * dia_getSiblingPrevious() = 0;
 
         // for each interface, we have an acessor that returns
         // either a pointer to the interface or nullptr is unsupported
@@ -89,3 +107,18 @@ namespace dust
     };
 
 }
+
+/*
+
+ Win32 specific notes:
+
+ the IRawElementProviderFragmentRoot interface is for HWNDs (=Window)
+
+ the IRawElementProviderSimple and IRawElementProviderFragment should be
+ implemented by anything that's supposed to be visible in the tree
+
+ GetEmbeddedFragmentRoots is apparently only if we host another HWND
+ with it's own fragment structure, so we'll ignore that for now
+
+
+*/

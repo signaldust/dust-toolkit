@@ -11,6 +11,16 @@ namespace dust
         removeAllChildren();
     }
 
+    DiaElement * PanelParent::dia_getChildFirst()
+    {
+        return children.first;
+    }
+    
+    DiaElement * PanelParent::dia_getChildLast()
+    {
+        return children.last;
+    }
+
     void PanelParent::removeAllChildren()
     {
         while(children.first)

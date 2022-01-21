@@ -193,8 +193,7 @@ namespace dust
                 auto timeDeltaMs = getWindow()->getUpdateDeltaMs();
                 
                 // somewhere around 100ms this starts to feel sluggish
-                // so we pick time constant at 50ms to try and stay snappy
-                float delta = std::exp2(timeDeltaMs * (-1.f / 50.f));
+                float delta = std::exp2(timeDeltaMs * (-1.f / 75.f));
 
                 // convert to approximate integer fraction
                 int iDeltaDiv = 1000;

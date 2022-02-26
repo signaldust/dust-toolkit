@@ -45,28 +45,29 @@ struct HelloWorld : dust::Panel
         // we'll set the font before setting the text
         // otherwise we'd have to call recalculateSize() to refresh
         closeLabel.font.loadDefaultFont(8.f, 96.f, true);
-        closeLabel.setText("close");
+        closeLabel.setText("Stop war!");
         
         // then we'll fill the rest of the window with a greeting
         helloText.setParent(this);
         // we'll set the font before setting the text
         // otherwise we'd have to call recalculateSize() to refresh
-        helloText.font.loadDefaultFont(20.f, 96.f);
-        helloText.setText("Hi, how are you doing?");
+        helloText.font.loadDefaultFont(42.f, 96.f);
+        helloText.setText("Stop war!");
         helloText.style.rule = dust::LayoutStyle::FILL;
 
         // by default, the label draws with dust::theme.fgColor,
-        // but we'll paint the background pretty, so draw text in black instead
-        helloText.color = 0xff000000;
+        // but we'll paint the background pretty, so draw text in red instead
+        helloText.color = 0xffFF0000;
     }
 
     void render(dust::RenderContext & rc)
     {
+        float pt = getWindow()->pt();
         // we'll make the background prettier with a gradient
         rc.fill<dust::blend::None>(
             dust::paint::Gradient2(
-                0xffff00ff, 0, 0,
-                0xff400080, 0, layout.h));
+                0xff005BBB, 0, layout.h * .5f - pt,
+                0xffFFD500, 0, layout.h * .5f + pt));
     }
 };
 
@@ -85,7 +86,7 @@ struct HelloApp : dust::Application
         dust::openWindow(hello, *this);
 
         // give the window a title
-        hello.getWindow()->setTitle("Hello World!");
+        hello.getWindow()->setTitle("Stop war!");
     }
     
 };

@@ -82,16 +82,6 @@ Start by taking a look at the [hello world example](programs/hello/hello.cpp).
 Other than that, at this point, there isn't any documentation yet,
 but the header files are quite extensively commented.
 
-That said as a general rule-of-thumb the toolkit follows the principle that whoever creates
-an object/resource also owns it. For example, any `Panel` can be placed in stack, heap,
-as member of another `Panel` or some helper class, where as a `Window` (created by the toolkit)
-is owned by the toolkit (with lifetime generally associated with the lifetime of the underlying
-OS window).
-
-In general, any interface taking pointers or references does not transfer objet ownership.
-This also applies to parent-child relationships of widgets: while these internally retain references
-such relationships are simply automatically disconnected if either the parent or the child is destroyed.
-
 For the main toolkit, the best starting points are `dust/gui/panel.h`, `dust/gui/window.h`
 and `dust/gui/app.h` and for the rendering pipeline you should start from `dust/render/render.h`.
 
@@ -99,3 +89,32 @@ The whole thing is designed to be fairly modular: `core` is required by most thi
 the `gui` module also depends on `render` and `dust/widgets/textarea.h` depends on `regex`.
 
 The `thread` module is optional and somewhat geared towards real-time (eg. audio) work.
+
+That said as a general rule-of-thumb the toolkit follows the principle that whoever creates
+an object/resource also owns it. For example, any `Panel` can be placed in stack, heap,
+as member of another `Panel` or some helper class, where as a `Window` (created by the toolkit)
+is owned by the toolkit (with lifetime generally associated with the lifetime of the underlying
+OS window).
+
+In general, any interface taking pointers or references does not transfer object ownership.
+This also applies to parent-child relationships of widgets: while these internally retain references
+such relationships are simply automatically disconnected if either the parent or the child is destroyed.
+
+Because the entire widget-tree is fully dynamic and any widget (or even the entire GUI) can be
+linked to many different windows over it's lifetime, the toolkit provides another useful invariant:
+the event-handling methods are never called unless the widget (or one of it's current grand-parents)
+is linked to `Window` (ie. `getWindow()` will never return null inside any of the methods with
+names starting with `ev_`).
+
+In some cases, it might also be necessary to attach additional resources to objects we either can't
+or don't want to extend directly. The most obvious case of this would be creating OpenGL resources
+which need to be specific to a certain `Window` (since it's the window that owns the OpenGL context).
+For these types of situations, the toolkit also includes a flexible "component system" that
+allows one to attach "components" to any object that derives from `ComponentHost` (eg. `Window`).
+
+Any components are created the first time you query for one and they are destroyed when the hosting
+object is destroyed. In case of `Window` and OpenGL resources specifically, the toolkit also
+guarantees that the correct context is active during the component teardown done as long as this
+teardown is initiated by the destruction of the `Window` (ie. no such guarantee is made if the
+teardown happens because the relevant component manager itself is destroyed; while not strictly
+necessary, it is typically a good idea to just make your component managers global if possible).

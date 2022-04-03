@@ -103,7 +103,7 @@ such relationships are simply automatically disconnected if either the parent or
 Because the entire widget-tree is fully dynamic and any widget (or even the entire GUI) can be
 linked to many different windows over it's lifetime, the toolkit provides another useful invariant:
 the event-handling methods are never called unless the widget (or one of it's current grand-parents)
-is linked to `Window` (ie. `getWindow()` will never return null inside any of the methods with
+is linked to some `Window` (ie. `getWindow()` will never return null inside any of the methods with
 names starting with `ev_`).
 
 In some cases, it might also be necessary to attach additional resources to objects we either can't

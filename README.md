@@ -103,8 +103,8 @@ such relationships are simply automatically disconnected if either the parent or
 Because the entire widget-tree is fully dynamic and any widget (or even the entire GUI) can be
 linked to many different windows over it's lifetime, the toolkit provides another useful invariant:
 the event-handling methods are never called unless the widget (or one of it's current grand-parents)
-is linked to some `Window` (ie. `getWindow()` will never return null inside any of the methods with
-names starting with `ev_`).
+is linked to some `Window` (ie. `getWindow()` will never return null inside `render` or any of the
+methods with names starting with `ev_`).
 
 In some cases, it might also be necessary to attach additional resources to objects we either can't
 or don't want to extend directly. The most obvious case of this would be creating OpenGL resources
@@ -114,7 +114,7 @@ allows one to attach "components" to any object that derives from `ComponentHost
 
 Any components are created the first time you query for one and they are destroyed when the hosting
 object is destroyed. In case of `Window` and OpenGL resources specifically, the toolkit also
-guarantees that the correct context is active during the component teardown done as long as this
-teardown is initiated by the destruction of the `Window` (ie. no such guarantee is made if the
-teardown happens because the relevant component manager itself is destroyed; while not strictly
+guarantees that the correct context is active during `render`, `ev_update` and the component teardown,
+as long as this teardown is initiated by the destruction of the `Window` (ie. no such guarantee is made
+if the teardown happens because the relevant component manager itself is destroyed; while not strictly
 necessary, it is typically a good idea to just make your component managers global if possible).

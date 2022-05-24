@@ -493,9 +493,6 @@ struct FindPanel : dust::Grid<2,2>
         findBox.style.padding.east = 6;
         findBox.onResetColor = [this]() { findStatus.setText(""); };
 
-        findStatus.setParent(findBox);
-        findStatus.style.rule = dust::LayoutStyle::EAST;
-        
         insert(1, 1, replaceButton);
         replaceButton.style.rule = dust::LayoutStyle::FILL;
 
@@ -1000,6 +997,10 @@ struct AppWindow : dust::Panel
             this->activeTab->content.editor.setPosition(l, c);
         };
 
+        buildPanel.header.style.padding.east = 6;
+        findPanel.findStatus.setParent(buildPanel.header);
+        findPanel.findStatus.style.rule = dust::LayoutStyle::EAST;
+        
         findPanel.setParent(*this);
         findPanel.findBox.onEnter = [this](){ this->doSearch(false, false); };
         findPanel.findBox.onShiftEnter = [this](){ this->doSearch(false, true); };

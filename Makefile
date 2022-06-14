@@ -58,7 +58,7 @@ else
         
         DUST_LINKLIB := libtool -static -o $(LIBRARY)
         
-        CFLAGS += -arch x86_64 -mmacosx-version-min=10.9 -DDUST_USE_OPENGL=1
+        CFLAGS += -mmacosx-version-min=10.9 -DDUST_USE_OPENGL=1
         
         LIBS := -lc++
         LIBS += -framework AudioUnit -framework Carbon -framework AppKit

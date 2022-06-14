@@ -196,6 +196,8 @@ namespace dust
             glGenFramebuffers(1, &fbo);
             glGenTextures(1, &fboTex);
             glBindTexture(GL_TEXTURE_2D, fboTex);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0);
             
             glGenVertexArrays(1, &vao);
             glBindVertexArray(vao);
@@ -441,8 +443,18 @@ namespace dust
         glDisable(GL_SCISSOR_TEST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
+        // Apple throws a debug message on M1 if we don't bind
+        // a texture that we've actually properly allocated.
+        //
+        // Suppress the message by binding the software rendered
+        // image twice instead.
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, gl->fboTex);
+        if(gl->fboSzX && gl->fboSzY)
+            glBindTexture(GL_TEXTURE_2D, gl->fboTex);
+        else
+            glBindTexture(GL_TEXTURE_2D, gl->backingTexture);
+        
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, gl->backingTexture);
 

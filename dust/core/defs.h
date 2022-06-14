@@ -50,7 +50,9 @@
 #include <functional>
 #include <chrono>
 
-#include <x86intrin.h>
+#if defined(__i386__) || defined(__x86_64__)
+# include <x86intrin.h>
+#endif
 
 // concatenate tokens, also with expansion of the parts
 // this is used by debug traces and the macOS wrapper
@@ -77,17 +79,21 @@ namespace dust
         // otherwise we force rounding
         FPUState(bool truncate = false)
         {
+#if defined(__i386__) || defined(__x86_64__)
             sse_control_store = _mm_getcsr();
 
             // bits:
             // 15 = flush to zero | 14:13 = round to zero | 6 = denormals are zero
             // or with exception masks 12:7 (exception flags are bits 5:0)
             _mm_setcsr((truncate ? 0xe040 : 0x8040) | 0x1f80 );
+#endif
         }
         ~FPUState()
         {
+#if defined(__i386__) || defined(__x86_64__)
             // clear bits 5:0 (exception flags) just in case
             _mm_setcsr(sse_control_store & (~0x3f));
+#endif
         }
     };
 

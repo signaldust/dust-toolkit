@@ -1,5 +1,8 @@
 
-#include <x86intrin.h>
+
+#if defined(__i386__) || defined(__x86_64__)
+# include <x86intrin.h>
+#endif
 #include <cmath>
 
 #include "render_paint.h"
@@ -48,6 +51,7 @@ using namespace dust;
 //  b1 = a/(1+a), b2 = b1*b1, b3 = (1+a*a)*b1*b2
 //
 
+#if defined(__i386__) || defined(__x86_64__)
 static inline void blurLine(
     unsigned *buf, unsigned count,
     const __m128 & a, const __m128 & b1,
@@ -110,6 +114,7 @@ static inline void blurLine(
         _mm_store_ss((float*)&buf[x], v);
     }
 }
+#endif
 
 // s = src, sp = src pitch, d = dst, dp = dst pitch
 static inline void imageTranspose(
@@ -153,6 +158,7 @@ static inline void imageTranspose(
 
 void Surface::blur(Surface & src, float r)
 {
+#if defined(__i386__) || defined(__x86_64__)
     unsigned w = src.szX, h = src.szY;
 
     // need a temporary surface to hold transposed data
@@ -195,6 +201,7 @@ void Surface::blur(Surface & src, float r)
     }
 
     _mm_setcsr(sse_control_store);
+#endif
 }
 
 

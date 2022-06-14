@@ -31,18 +31,26 @@ namespace dust
 {
     // short-cut to "full memory fence"
     //
+    // FIXME: split this into acq/rel some day
+    //
     static void inline memfence()
     {
-#ifdef __clang__
-        asm volatile ("" : : : "memory");
+#if 1
+        // use C++11 barriers so they work on ARM too
+        std::atomic_thread_fence(std::memory_order_acq_rel);
+
 #else
+# ifdef __clang__
+        asm volatile ("" : : : "memory");
+# else
 #  ifdef _WIN32
         _ReadWriteBarrier();
 #  endif
-#endif
+# endif
 
-#ifdef __INTEL_COMPILER
+# ifdef __INTEL_COMPILER
         __memory_barrier(); // just in case
+# endif
 #endif
     }
 
@@ -185,7 +193,7 @@ namespace dust
             }
 
             // this is clang builtin that also results in a fence
-            __atomic_sub_fetch(&freeSpace, totalItems, __ATOMIC_SEQ_CST);
+            __atomic_sub_fetch(&freeSpace, totalItems, __ATOMIC_ACQ_REL);
 
             return true;
         }
@@ -209,7 +217,7 @@ namespace dust
             }
 
             // this is clang builtin that also results in a fence
-            __atomic_add_fetch(&freeSpace, items, __ATOMIC_SEQ_CST);
+            __atomic_add_fetch(&freeSpace, items, __ATOMIC_ACQ_REL);
 
             return items;
         }

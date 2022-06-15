@@ -63,8 +63,12 @@
 # warning 'Unknown ISA architecture'
 #endif
 
-#if DUST_ARCH_X86
+#if defined(DUST_ARCH_X86)
 # include <x86intrin.h>
+#endif
+
+#if defined(DUST_ARCH_ARM64)
+# include "dust/libs/sse2neon.h"
 #endif
 
 // concatenate tokens, also with expansion of the parts
@@ -92,7 +96,7 @@ namespace dust
         // otherwise we force rounding
         FPUState(bool truncate = false)
         {
-#if DUST_ARCH_X86
+#if defined(DUST_ARCH_X86)
             sse_control_store = _mm_getcsr();
 
             // bits:
@@ -103,7 +107,7 @@ namespace dust
         }
         ~FPUState()
         {
-#if DUST_ARCH_X86
+#if defined(DUST_ARCH_X86)
             // clear bits 5:0 (exception flags) just in case
             _mm_setcsr(sse_control_store & (~0x3f));
 #endif

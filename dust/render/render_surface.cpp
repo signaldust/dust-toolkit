@@ -8,11 +8,6 @@
 # include <x86intrin.h>
 #endif
 
-#if defined(DUST_ARCH_ARM64)
-# include <arm_neon.h>
-# include "dust/libs/sse2neon.h"
-#endif
-
 using namespace dust;
 
 // NOTES ON BLUR:

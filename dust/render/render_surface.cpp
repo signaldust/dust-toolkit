@@ -8,6 +8,11 @@
 # include <x86intrin.h>
 #endif
 
+#if defined(DUST_ARCH_ARM64)
+# include <arm_neon.h>
+# include "dust/libs/sse2neon.h"
+#endif
+
 using namespace dust;
 
 // NOTES ON BLUR:
@@ -52,7 +57,6 @@ using namespace dust;
 //  b1 = a/(1+a), b2 = b1*b1, b3 = (1+a*a)*b1*b2
 //
 
-#if defined(DUST_ARCH_X86)
 static inline void blurLine(
     unsigned *buf, unsigned count,
     const __m128 & a, const __m128 & b1,
@@ -115,7 +119,6 @@ static inline void blurLine(
         _mm_store_ss((float*)&buf[x], v);
     }
 }
-#endif
 
 // s = src, sp = src pitch, d = dst, dp = dst pitch
 static inline void imageTranspose(
@@ -159,18 +162,20 @@ static inline void imageTranspose(
 
 void Surface::blur(Surface & src, float r)
 {
-#if defined(DUST_ARCH_X86)
     unsigned w = src.szX, h = src.szY;
 
     // need a temporary surface to hold transposed data
     Surface tmp(h, w);
 
+#ifdef DUST_ARCH_X86
     // we absolutely can't have denormals!
     // get old control word, set desired bits
     unsigned int sse_control_store = _mm_getcsr();
+
     // bits: bits: 15 = flush to zero
     //  | 14:13 = round to zero | 6 = denormals are zero
     _mm_setcsr(sse_control_store | 0xE040);
+#endif
 
     float a = exp(-2.f/r);
     float b1 = a / ( 1 + a);
@@ -201,6 +206,7 @@ void Surface::blur(Surface & src, float r)
         blurLine(pixels+y*w, w, va, vb1, vb2, vb3);
     }
 
+#ifdef DUST_ARCH_X86
     _mm_setcsr(sse_control_store);
 #endif
 }

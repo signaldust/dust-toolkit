@@ -14,6 +14,8 @@ CFLAGS += -Wno-unused -Wno-unused-function
 # C++ specific flags
 CXXFLAGS := -std=c++11 -fno-exceptions
 
+LINKFLAGS :=
+
 -include local.make
 
 DUST_LIB ?= dust
@@ -31,7 +33,7 @@ ifeq ($(OS),Windows_NT)
     DUST_LINKLIB ?= llvm-lib /out:$(LIBRARY)
     CLEANALL := tools\win\rm-rf.bat $(DUST_BUILD)
     
-    LINKFLAGS := --rtlib=compiler-rt $(LIBRARY) -luser32 -lgdi32
+    LINKFLAGS += --rtlib=compiler-rt $(LIBRARY) -luser32 -lgdi32
 
     CFLAGS += -D_CRT_SECURE_NO_WARNINGS
 
@@ -69,7 +71,7 @@ else
         #
         # This doesn't matter for standalone applications, but it matters
         # for AudioUnits that might have different version of the library.
-        LINKFLAGS := -DDUST_COCOA_PREFIX=`uuidgen|sed -e 's/-/_/g'|sed -e 's/.*/_\0_/'`
+        LINKFLAGS += -DDUST_COCOA_PREFIX=`uuidgen|sed -e 's/-/_/g'|sed -e 's/.*/_\0_/'`
         LINKFLAGS += $(CFLAGS) $(CXXFLAGS)
         LINKFLAGS += dust/gui/sys_osx.mm $(LIBRARY) $(LIBS)
 

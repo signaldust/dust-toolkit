@@ -1,11 +1,12 @@
 
 
-#if defined(__i386__) || defined(__x86_64__)
-# include <x86intrin.h>
-#endif
 #include <cmath>
 
 #include "render_paint.h"
+
+#if defined(DUST_ARCH_X86)
+# include <x86intrin.h>
+#endif
 
 using namespace dust;
 
@@ -51,7 +52,7 @@ using namespace dust;
 //  b1 = a/(1+a), b2 = b1*b1, b3 = (1+a*a)*b1*b2
 //
 
-#if defined(__i386__) || defined(__x86_64__)
+#if defined(DUST_ARCH_X86)
 static inline void blurLine(
     unsigned *buf, unsigned count,
     const __m128 & a, const __m128 & b1,
@@ -158,7 +159,7 @@ static inline void imageTranspose(
 
 void Surface::blur(Surface & src, float r)
 {
-#if defined(__i386__) || defined(__x86_64__)
+#if defined(DUST_ARCH_X86)
     unsigned w = src.szX, h = src.szY;
 
     // need a temporary surface to hold transposed data

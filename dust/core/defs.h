@@ -50,7 +50,20 @@
 #include <functional>
 #include <chrono>
 
-#if defined(__i386__) || defined(__x86_64__)
+#if defined(__i386__) || defined(__x86_64__) \
+    || defined(_M_IX86) || defined(_M_AMD64)
+# define DUST_ARCH_X86
+#endif
+
+#if defined(__ARM_ARCH_ISA_A64)
+# define DUST_ARCH_ARM64
+#endif
+
+#if !defined(DUST_ARCH_X86) && !defined(DUST_ARCH_ARM64)
+# warning 'Unknown ISA architecture'
+#endif
+
+#if DUST_ARCH_X86
 # include <x86intrin.h>
 #endif
 
@@ -79,7 +92,7 @@ namespace dust
         // otherwise we force rounding
         FPUState(bool truncate = false)
         {
-#if defined(__i386__) || defined(__x86_64__)
+#if DUST_ARCH_X86
             sse_control_store = _mm_getcsr();
 
             // bits:
@@ -90,7 +103,7 @@ namespace dust
         }
         ~FPUState()
         {
-#if defined(__i386__) || defined(__x86_64__)
+#if DUST_ARCH_X86
             // clear bits 5:0 (exception flags) just in case
             _mm_setcsr(sse_control_store & (~0x3f));
 #endif

@@ -358,7 +358,11 @@ namespace dust
 
             // check if this is a left-turn
             // use the actual last delta for more consistent results
-            if(prevDY*dx - prevDX*dy > 0)
+            //
+            // FIXME: on M1 we need a small epsilon so we're not sensitive
+            // to floating point rounding at stroke ends.. should really figure
+            // out a more consistent strategy to use here
+            if(prevDY*dx - prevDX*dy > 1e-4f)
             {
                 // loop brush vertices to find the max cross
                 float maxCross = brush[bIndex].x*dy - brush[bIndex].y*dx;

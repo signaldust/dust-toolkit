@@ -21,10 +21,13 @@ quality product and does not necessarily represent the code quality expected fro
 toolkit. While it is the editor I use as my day-to-day code editor, it's original function
 was to exercise the toolkit for the purpose of dog-food testing.
 
-It supports Windows and OSX, but the bulk of it is platform independent. While it should probably
-work for 32-bit builds, at this point I only care about performance for 64-bit builds. There are
-some bits of code (notably the surface blur) that utilize x86 SSE intrinsics, so expect to do
-a bit of editing if you want to use this on other CPU architectures.
+The bulk of it is platform independent. The current platform wrappers support Windows (Win7+ at least;
+XP should probably work, but hasn't been tested in a while) and macOS (builds against 10.9 frameworks,
+currently tested on macOS 11 and 12), 32-bit builds should work (feel free to report an issue if not;
+my testing is somewhat sporadic), but development focus (especially performance) is for 64-bit versions.
+
+The latest revisions as of Jun 16th 2022 are also supposed to work on M1, some minor glitches are
+still possible, though everything at least appears to be working fine.
 
 ## License
 
@@ -42,12 +45,12 @@ The following license applies to the toolkit itself:
 \****************************************************************************/
 ```
 
-The dependencies included in `dust/lib` (nanosvg, stb_image, stb_truetype) each have
-permissive license, see each file for the details. The scancode conversion tables
+The dependencies included in `dust/lib` (nanosvg, stb_image, stb_truetype, gl3w, sse2neon) each have
+permissive licenses (eg. MIT or similar), see each file for the details. The scancode conversion tables
 are from SDL (for compatibility), see license in `dust/gui/scancode.h` for details.
 
-The default fonts included are Deja Vu Sans / Sans Mono, converted into headers
-so that there is always some font available to draw text.
+The default fonts included are Deja Vu Sans / Sans Mono, these have been converted into headers
+(xxd dumps of the original .ttf files) so that there is always some font available to draw text.
 
 ## Building
 

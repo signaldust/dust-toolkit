@@ -985,8 +985,11 @@ willPositionSheet:(NSWindow *)sheet
     for(auto * p = text; *p; ++p)
     {
         if(*p == 0x7f || *(uint8_t*)(p) < 0x20) clean = false;
-
     }
+
+    // replace non-breaking space with a regular one
+    if(!strcmp(text, "\u00A0")) text = " ";
+    
     if(clean) sysFrame->sendText(text);
     
     [nsstr release];

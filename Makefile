@@ -6,7 +6,7 @@
 CC := clang
 
 # Generic compilation flags, both C and C++
-CFLAGS := -I.
+CFLAGS := -I. -fvisibility=hidden
 CFLAGS += -Ofast -fomit-frame-pointer
 CFLAGS += -Wall -Werror -Wfloat-conversion -ferror-limit=5
 CFLAGS += -Wno-unused -Wno-unused-function
@@ -19,19 +19,21 @@ LINKFLAGS :=
 -include local.make
 
 DUST_LIB ?= dust
-DUST_BIN ?= bin
-DUST_BUILD ?= build
+
+DUST_BINDIR ?= bin
+DUST_PLUGDIR ?= bin-plug
+DUST_BUILDDIR ?= build
 
 # Windows specific
 ifeq ($(OS),Windows_NT)
     PLATFORM := Windows
-    LIBRARY := $(DUST_BUILD)/$(DUST_LIB).lib
+    LIBRARY := $(DUST_BUILDDIR)/$(DUST_LIB).lib
 
     LINKDEP := $(LIBRARY)
 
     MAKEDIR := tools\win\mkdir-p.bat
     DUST_LINKLIB ?= llvm-lib /out:$(LIBRARY)
-    CLEANALL := tools\win\rm-rf.bat $(DUST_BUILD)
+    CLEANALL := tools\win\rm-rf.bat $(DUST_BUILDDIR)
     
     LINKFLAGS += --rtlib=compiler-rt $(LIBRARY) -luser32 -lgdi32
 
@@ -44,13 +46,14 @@ ifeq ($(OS),Windows_NT)
     PLATFORM_SOURCES := dust/libs/gl3w/gl3w.c
     
     BINEXT := .exe
+    LIBEXT := .dll
 
 else
     
     # Anything else is .a
-    LIBRARY ?= $(DUST_BUILD)/$(DUST_LIB).a
+    LIBRARY ?= $(DUST_BUILDDIR)/$(DUST_LIB).a
     MAKEDIR := mkdir -p
-    CLEANALL := rm -rf $(DUST_BUILD) && mkdir $(DUST_BUILD)
+    CLEANALL := rm -rf $(DUST_BUILDDIR) && mkdir $(DUST_BUILDDIR)
     
     LINKDEP := $(LIBRARY)
     
@@ -71,13 +74,15 @@ else
         #
         # This doesn't matter for standalone applications, but it matters
         # for AudioUnits that might have different version of the library.
-        LINKFLAGS += -DDUST_COCOA_PREFIX=`uuidgen|sed -e 's/-/_/g'|sed -e 's/.*/_\0_/'`
+        LINKFLAGS += -DDUST_COCOA_PREFIX=`uuidgen|sed -e 's/-/_/g'`
         LINKFLAGS += $(CFLAGS) $(CXXFLAGS)
         LINKFLAGS += dust/gui/sys_osx.mm $(LIBRARY) $(LIBS)
 
         LINKDEP += dust/gui/sys_osx.mm
         
-        BINEXT := 
+        BINEXT :=
+        LIBEXT := .dylib
+        
     endif
 
 endif
@@ -92,23 +97,38 @@ LIB_SOURCES := $(wildcard dust/*/*.c)
 LIB_SOURCES += $(wildcard dust/*/*.cpp)
 LIB_SOURCES += $(PLATFORM_SOURCES)
 
-LIB_OBJECTS := $(patsubst %,$(DUST_BUILD)/%.o,$(LIB_SOURCES))
+LIB_OBJECTS := $(patsubst %,$(DUST_BUILDDIR)/%.o,$(LIB_SOURCES))
 LIB_DEPENDS := $(LIB_OBJECTS:.o=.d)
 
 SRC_DEPENDS :=
 
 # automatic target generation for any subdirectory of programs/
 define ProjectTarget
- SRC_DEPENDS += $(patsubst %,$(DUST_BUILD)/%.d,$(wildcard $1*.cpp))
- $(DUST_BIN)/$(patsubst programs/%/,%,$1)$(BINEXT): $(LINKDEP) \
-    $(patsubst %,$(DUST_BUILD)/%.o,$(wildcard $1*.cpp))
+ SRC_DEPENDS += $(patsubst %,$(DUST_BUILDDIR)/%.d,$(wildcard $1*.cpp))
+ $(DUST_BINDIR)/$(patsubst programs/%/,%,$1)$(BINEXT): $(LINKDEP) \
+    $(patsubst %,$(DUST_BUILDDIR)/%.o,$(wildcard $1*.cpp))
 	@echo LINK $$@
-	@$(MAKEDIR) "bin"
-	@$(CC) -o $$@ $(patsubst %,$(DUST_BUILD)/%.o,$(wildcard $1*.cpp)) $(LINKFLAGS)
+	@$(MAKEDIR) $(DUST_BINDIR)
+	@$(CC) -o $$@ \
+        $(patsubst %,$(DUST_BUILDDIR)/%.o,$(wildcard $1*.cpp)) $(LINKFLAGS)
+endef
+
+# automatic target generation for any subdirectory of plugins/
+define PluginTarget
+ SRC_DEPENDS += $(patsubst %,$(DUST_BUILDDIR)/%.d,$(wildcard $1*.cpp))
+ $(DUST_PLUGDIR)/$(patsubst plugins/%/,%,$1)$(LIBEXT): $(LINKDEP) \
+    $(patsubst %,$(DUST_BUILDDIR)/%.o,$(wildcard $1*.cpp))
+	@echo LINKLIB $$@
+	@$(MAKEDIR) $(DUST_PLUGDIR)
+	@$(CC) -shared -o $$@ \
+        $(patsubst %,$(DUST_BUILDDIR)/%.o,$(wildcard $1*.cpp)) $(LINKFLAGS)
 endef
 
 PROJDIRS := $(wildcard programs/*/)
-PROJECTS := $(patsubst programs/%/,bin/%$(BINEXT),$(PROJDIRS))
+PROJECTS := $(patsubst programs/%/,$(DUST_BINDIR)/%$(BINEXT),$(PROJDIRS))
+
+PLUGDIRS := $(wildcard plugins/*/)
+PROJECTS += $(patsubst plugins/%/,$(DUST_PLUGDIR)/%$(LIBEXT),$(PLUGDIRS))
 
 .PHONY: all clean
 
@@ -116,22 +136,23 @@ all: $(LIBRARY) $(PROJECTS)
 	@echo DONE
 
 clean:
-	@echo CLEAN $(DUST_BUILD)
+	@echo CLEAN $(DUST_BUILDDIR)
 	@$(CLEANALL)
 
 $(foreach i,$(PROJDIRS),$(eval $(call ProjectTarget,$(i))))
+$(foreach i,$(PLUGDIRS),$(eval $(call PluginTarget,$(i))))
 
 $(LIBRARY): $(LIB_OBJECTS)
 	@echo LIB $@
 	@$(MAKEDIR) "$(dir $@)"
 	@$(DUST_LINKLIB) $(LIB_OBJECTS)
 
-$(DUST_BUILD)/%.c.o: %.c
+$(DUST_BUILDDIR)/%.c.o: %.c
 	@echo CC $<
 	@$(MAKEDIR) "$(dir $@)"
 	@$(CC) -MMD -MP $(CFLAGS) -c $< -o $@
 
-$(DUST_BUILD)/%.cpp.o: %.cpp
+$(DUST_BUILDDIR)/%.cpp.o: %.cpp
 	@echo CC $<
 	@$(MAKEDIR) "$(dir $@)"
 	@$(CC) -MMD -MP $(CFLAGS) $(CXXFLAGS) -c $< -o $@

@@ -48,10 +48,10 @@ using namespace dust;
 //
 // NOTE: The C-preprocessor requires two-passes to actually expand this.
 #ifdef DUST_COCOA_PREFIX
-#define DUST_RENAME(x)   DUST_CONCAT_EXPAND(DUST_COCOA_PREFIX, x)
+#define DUST_RENAME(x)   DUST_CONCAT_EXPAND(x, DUST_COCOA_PREFIX)
 // -- now we can rename:
-#define DUSTWrapperView  DUST_RENAME(WrapperView)
-#define DUSTAppDelegate  DUST_RENAME(AppDelegate)
+#define DUSTWrapperView  DUST_RENAME(WrapperView_)
+#define DUSTAppDelegate  DUST_RENAME(AppDelegate_)
 #else
 #error DUST_COCOA_PREFIX not defined!
 #endif

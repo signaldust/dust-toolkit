@@ -56,7 +56,10 @@ The default fonts included are Deja Vu Sans / Sans Mono, these have been convert
 
 In theory, type `make` and it will find all source files inside `dust/` and build them
 into a library, then similarly find all source files in each sub-directory of `programs`
-and build them into programs.
+and build such subdirectory into a program placed in `bin`.
+
+Experimental: Sub-directories of `plugins` are also compiled into shared objects in `build/`
+although the details of this might change (might want to auto-bundle on macOS at least?).
 
 This should work on macOS (targeting 10.9 and later) and Windows (with `clang` in path).
 The `Makefile` includes `local.make` if such a file exists, in case you need local overrides.

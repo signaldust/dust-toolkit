@@ -811,7 +811,7 @@ willPositionSheet:(NSWindow *)sheet
 
 -(void)mouseDown:(NSEvent*)event
 {
-    if(sysFrame->titleBar.getParent()
+    if(sysFrame->titleBar.getParent() && sysFrame->titleBar.getEnabled()
     && ([self convertPoint:[event locationInWindow] fromView:nil].y
         < sysFrame->titleBar.size))
     {

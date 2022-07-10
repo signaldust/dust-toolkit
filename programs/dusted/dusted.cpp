@@ -657,7 +657,7 @@ struct BuildPanel : dust::Panel
 
 struct AppWindow : dust::Panel
 {
-    dust::Grid<2,1>  grid;
+    dust::Grid<2,2>  grid;
 
     FileBrowser     browser;
     FindPanel       findPanel;
@@ -976,6 +976,30 @@ struct AppWindow : dust::Panel
         return true;
     }
 
+    void ev_layout()
+    {
+        // switch between vertical / horizontal panel split
+        // depending on whether the window is wider or taller
+        bool hstack = layout.h > layout.w;
+        if(hstack && panel1.getParent() == grid.getCell(1,0))
+        {
+            grid.insert(0, 1, panel1);
+            grid.weightRow(1, 1);
+            grid.weightColumn(1, 0);
+            
+            layoutAsRoot(getWindow()->getDPI());
+        }
+        if(!hstack && panel1.getParent() == grid.getCell(0,1))
+        {
+            grid.insert(1, 0, panel1);
+            grid.weightRow(1, 0);
+            grid.weightColumn(1, 1);
+            
+            layoutAsRoot(getWindow()->getDPI());
+        }
+    }
+    
+
     AppWindow()
     {
         style.rule = dust::LayoutStyle::FILL;
@@ -1018,10 +1042,12 @@ struct AppWindow : dust::Panel
         findPanel.replaceButton.onClick = findPanel.replaceBox.onEnter;
         findPanel.replaceBox.onTab = [this]()
         { findPanel.findBox.focusSelectAll(); };
+        
         grid.insert(0, 0, panel0);
         grid.insert(1, 0, panel1);
 
         grid.weightRow(0, 1);
+        grid.weightRow(1, 0);
         grid.weightColumn(0, 1);
         grid.weightColumn(1, 1);
 

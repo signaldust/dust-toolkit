@@ -71,7 +71,7 @@ namespace dust
         const char * wordSeparators()
         {
             const char * p = syntaxParser ? syntaxParser->wordSeparators() : 0;
-            if(!p) p = " \n\t\"\'()[]{}<>=&|^~!.,:;+-*/%";
+            if(!p) p = " \n\t\"\'()[]{}<>=&|^~!.,:;+-*/%$";
             return p;
         }
 

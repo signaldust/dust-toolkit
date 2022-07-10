@@ -6,7 +6,7 @@
 CC := clang
 
 # Generic compilation flags, both C and C++
-CFLAGS := -I. -fvisibility=hidden
+CFLAGS := -I. -g -fvisibility=hidden
 CFLAGS += -Ofast -fomit-frame-pointer
 CFLAGS += -Wall -Werror -Wfloat-conversion -ferror-limit=5
 CFLAGS += -Wno-unused -Wno-unused-function

@@ -199,9 +199,6 @@ namespace dust
             ctl.setParent(getCell(col, row));
         }
 
-    private:
-        const unsigned nColumn;
-
         // return a pointer to a given cell or null if out of bounds
         Panel * getCell(unsigned c, unsigned r)
         {
@@ -209,6 +206,9 @@ namespace dust
             if(r >= rows.size()) return 0;
             return rows[r] + c;
         }
+
+    private:
+        const unsigned nColumn;
 
         struct Column : Panel
         {

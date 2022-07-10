@@ -21,7 +21,6 @@ LINKFLAGS :=
 DUST_LIB ?= dust
 
 DUST_BINDIR ?= bin
-DUST_PLUGDIR ?= bin-plug
 DUST_BUILDDIR ?= build
 
 # Windows specific
@@ -116,10 +115,10 @@ endef
 # automatic target generation for any subdirectory of plugins/
 define PluginTarget
  SRC_DEPENDS += $(patsubst %,$(DUST_BUILDDIR)/%.d,$(wildcard $1*.cpp))
- $(DUST_PLUGDIR)/$(patsubst plugins/%/,%,$1)$(LIBEXT): $(LINKDEP) \
+ $(DUST_BUILDDIR)/$(patsubst plugins/%/,%,$1)$(LIBEXT): $(LINKDEP) \
     $(patsubst %,$(DUST_BUILDDIR)/%.o,$(wildcard $1*.cpp))
 	@echo LINKLIB $$@
-	@$(MAKEDIR) $(DUST_PLUGDIR)
+	@$(MAKEDIR) $(DUST_BUILDDIR)
 	@$(CC) -shared -o $$@ \
         $(patsubst %,$(DUST_BUILDDIR)/%.o,$(wildcard $1*.cpp)) $(LINKFLAGS)
 endef
@@ -128,7 +127,7 @@ PROJDIRS := $(wildcard programs/*/)
 PROJECTS := $(patsubst programs/%/,$(DUST_BINDIR)/%$(BINEXT),$(PROJDIRS))
 
 PLUGDIRS := $(wildcard plugins/*/)
-PROJECTS += $(patsubst plugins/%/,$(DUST_PLUGDIR)/%$(LIBEXT),$(PLUGDIRS))
+PROJECTS += $(patsubst plugins/%/,$(DUST_BUILDDIR)/%$(LIBEXT),$(PLUGDIRS))
 
 .PHONY: all clean
 

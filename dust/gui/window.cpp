@@ -12,11 +12,6 @@
 # include "gl-shader.h"
 #endif
 
-// seems gl3.h doesn't declare these
-#ifndef GL_UNPACK_CLIENT_STORAGE_APPLE
-#define GL_UNPACK_CLIENT_STORAGE_APPLE 0x85B2
-#endif
-
 namespace dust
 {
 

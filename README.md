@@ -6,7 +6,8 @@ This toolkit is the public version of my 5th(?) generation private application /
 It is the result of several iterations of trying to simplify development of portable native
 applications and plugins.
 
-If you're looking for a fool-proof, fully-featured enterprise-ready toolkit, then look elsewhere.
+If you're looking for a fool-proof (well, it tries to be encourage correct usage, but there might
+be a few rough edges and leaky abstractions), fully-featured enterprise-ready toolkit, then look elsewhere.
 This toolkit is designed to make the lone-coder or a small team highly-productive by trying to
 minimize any pointless boilerplate. On the other hand, it probably doesn't solve all your problems,
 it just tries to do the boring stuff that you always need in a reasonably painless way.

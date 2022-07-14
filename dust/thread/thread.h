@@ -172,9 +172,9 @@ namespace dust
             DataType * items2 = 0, unsigned nItems2 = 0)
         {
             // fetch the amount of space
-            memfence();
+            memfence_acq();
             unsigned space = freeSpace;
-            memfence();
+            memfence_rel();
 
             unsigned totalItems = nItems + nItems2;
 
@@ -205,9 +205,9 @@ namespace dust
         // returns the number of items received
         unsigned recv(DataType * out, unsigned maxOut)
         {
-            memfence();
+            memfence_acq();
             unsigned space = freeSpace;
-            memfence();
+            memfence_rel();
 
             // compute the number of items in the queue
             unsigned items = QueueSize - space;

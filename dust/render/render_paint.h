@@ -113,8 +113,31 @@ namespace dust
 
                 return pixels[sx + sy*surface.getPitch()];
             }
-
         };
+
+        struct ColorMask
+        {
+            Alpha   *mask;
+            unsigned pitch;
+            Rect    srcClip;
+            ARGB    c;
+            
+            // copy pixels from surface with the surface origin
+            // placed at (originX,originY) on the render context
+            ColorMask(ARGB c, Alpha * src, unsigned pitch, Rect & rect)
+                : mask(src), pitch(pitch), srcClip(rect), c(c)
+            {
+            }
+
+            const Rect * getClipRect() const { return &srcClip; }
+
+            ARGB color(int x, int y) const
+            {
+                return color::blend(c,
+                    mask[(x+srcClip.x0)+(y+srcClip.y0)*pitch]);
+            }
+        };
+        
     };
 
     // Blending classes, put them in a sub-namespace

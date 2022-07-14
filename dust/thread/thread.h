@@ -35,23 +35,20 @@ namespace dust
     //
     static void inline memfence()
     {
-#if 1
         // use C++11 barriers so they work on ARM too
         std::atomic_thread_fence(std::memory_order_acq_rel);
+    }
 
-#else
-# ifdef __clang__
-        asm volatile ("" : : : "memory");
-# else
-#  ifdef _WIN32
-        _ReadWriteBarrier();
-#  endif
-# endif
+    static void inline memfence_acq()
+    {
+        // use C++11 barriers so they work on ARM too
+        std::atomic_thread_fence(std::memory_order_acquire);
+    }
 
-# ifdef __INTEL_COMPILER
-        __memory_barrier(); // just in case
-# endif
-#endif
+    static void inline memfence_rel()
+    {
+        // use C++11 barriers so they work on ARM too
+        std::atomic_thread_fence(std::memory_order_release);
     }
 
     // This is a "realtime safe pointer" class
@@ -89,34 +86,40 @@ namespace dust
         T * rtLock()
         {
             // set readState to current generation
+            memfence_acq();
             readState = readGeneration;
+            memfence_rel();
+            
             // increment by 2, to keep the lowest bit non-zero
             // this avoids having to worry about wrap-around
             readGeneration += 2;
 
             // then we can load the pointer
-            memfence();
             return ptr;
         }
 
         void rtRelease()
         {
-            memfence();
-
             // this just needs to clear the flag
+            memfence_acq();
             readState = 0;
+            memfence_rel();
         }
 
         T * swapAndWait(T * newPtr)
         {
+            memfence_acq();
             // get the old pointer
             T * oldPtr = ptr;
             // set the new pointer
             ptr = newPtr;
+
             memfence();
+
             // get the reader state
             unsigned oldState = readState;
-            memfence();
+            memfence_rel();
+            
             // if it's non-zero, we need to wait
             if(oldState)
             {
@@ -138,11 +141,11 @@ namespace dust
         }
     private:
         // the actual pointer stored
-        T * volatile ptr;
+        T * ptr;
         // readState has the invariants that:
         //  - if it's zero, then there is no reader
         //  - the non-zero value changes on every lock
-        unsigned volatile readState;
+        unsigned readState;
 
         // readGeneration = 1 + 2*n mod 2^k
         // hence it's never zero even after wrap around
@@ -235,9 +238,6 @@ namespace dust
 
     // no standard C++11 solution since we need non-blocking
     // post() and trywait() to use these for real-time work
-    //
-    // the memfence() barriers here are probably too much, but
-    // on x86 they are compiler fences anyway so just play safe
     struct Semaphore
     {
         Semaphore() { init(0); }
@@ -252,27 +252,21 @@ namespace dust
         // Wait "count" times. Implemented as a loop for convenience.
         void wait(unsigned count = 1)
         {
-            memfence();
             while(count--) platform_wait();
-            memfence();
         }
 
         // Try to "wait", but return false if wait() would block.
         // One can also give optional timeout.
         bool tryWait(unsigned long timeout = 0)
         {
-            memfence();
             bool value = platform_try_wait(timeout);
-            memfence();
             return value;
         }
 
         // Post "count" times.
         void post(unsigned count = 1)
         {
-            memfence();
             platform_signal(count);
-            memfence();
         }
     private:
 #if defined(_WIN32)

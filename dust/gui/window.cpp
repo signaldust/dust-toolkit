@@ -87,6 +87,7 @@ namespace dust
                 em.type = MouseEvent::tMove;
                 em.scrollX = 0;
                 em.scrollY = 0;
+                em.flags = MouseEvent::Flags::hoverOnScroll;
                 sendMouseEvent(em);
             }
             else

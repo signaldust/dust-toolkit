@@ -45,6 +45,11 @@ namespace dust
             tInvalid
         };
 
+        struct Flags {
+            // This is set on the synthetic tMove after tScroll
+            static const uint8_t    hoverOnScroll = (1<<0);
+        };
+
         Type        type;       // event type
 
         int         x, y;       // frame local coordinates
@@ -53,7 +58,7 @@ namespace dust
         uint8_t     nClick;     // 1 for click, 2 for double - can go higher
 
         uint8_t     keymods;    // key modifiers
-        uint8_t     xxReserve;  // FIXME: what did I forget?
+        uint8_t     flags;      // flags (above)
 
         float       scrollX;    // x-direction scroll
         float       scrollY;    // y-direction scroll
@@ -62,7 +67,7 @@ namespace dust
             uint8_t btn, uint8_t nClick, uint8_t mods)
             : type(type), x(x), y(y)
             , button(btn), nClick(nClick), keymods(mods)
-            , scrollX(0), scrollY(0)
+            , flags(0), scrollX(0), scrollY(0)
         { }
     };
 

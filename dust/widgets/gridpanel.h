@@ -35,8 +35,7 @@ namespace dust
             {
                 columns[i].setParent(this);
                 columns[i].weight = 0;
-                // set column style to none; we do them manually
-                columns[i].style.rule = LayoutStyle::NONE;
+                columns[i].style.rule = LayoutStyle::MANUAL;
             }
         }
 

@@ -41,14 +41,16 @@ namespace dust
         // the layout rule to use
         enum Rule
         {
-            NONE,           // don't automatically layout at all
-            FILL,           // fill remaining content area
+            FILL,           // fill remaining content area (default)
 
             // border rules - slice area from one of the sides
             NORTH, EAST, SOUTH, WEST,
 
-            // flow for text and other objects
+            // flow for text and other objects (FIXME: not implemented ..)
             FLOW,
+
+            // explicit manual layout (eg. for MDI windows)
+            MANUAL,
 
             INVALID         // like none, but causes debug print
 

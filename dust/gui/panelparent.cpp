@@ -169,8 +169,8 @@ namespace dust
 
         for(Panel * c : children)
         {
-            // don't do any layout if disabled or rule is none
-            if(!c->enabled || c->style.rule == LayoutStyle::NONE) continue;
+            // don't do any layout if disabled
+            if(!c->enabled || c->style.rule == LayoutStyle::MANUAL) continue;
 
             // calculate temporary size as desired pixel size
             c->layout.w = (int) ceil(c->style.minSizeX * unit);
@@ -202,6 +202,8 @@ namespace dust
                 contentSize = (std::max)(contentSize, reserveSize);
                 break;
 
+            case LayoutStyle::MANUAL: break;    // don't give a warning
+
             default:
                 debugPrint("warning: unknown style.rule!\n");
                 break;
@@ -224,7 +226,7 @@ namespace dust
         for(Panel * c : children)
         {
             // don't do any layout if disabled or rule is none
-            if(!c->enabled || c->style.rule == LayoutStyle::NONE) continue;
+            if(!c->enabled || c->style.rule == LayoutStyle::MANUAL) continue;
 
             float unit = dpi * (1/72.f);
 
@@ -279,7 +281,7 @@ namespace dust
 
         for(Panel * c : children)
         {
-            if(!c->enabled || c->style.rule == LayoutStyle::NONE) continue;
+            if(!c->enabled || c->style.rule == LayoutStyle::MANUAL) continue;
 
             switch(c->style.rule)
             {
@@ -319,7 +321,7 @@ namespace dust
 
         for(Panel * c : children)
         {
-            if(!c->enabled || c->style.rule == LayoutStyle::NONE) continue;
+            if(!c->enabled || c->style.rule == LayoutStyle::MANUAL) continue;
 
             switch(c->style.rule)
             {

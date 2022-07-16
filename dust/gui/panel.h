@@ -54,7 +54,7 @@ namespace dust
 
             INVALID         // like none, but causes debug print
 
-        } rule = INVALID;
+        } rule = FILL;
 
         // desired minimum size in points
         float minSizeX = 0, minSizeY = 0;

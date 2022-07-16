@@ -24,11 +24,8 @@ was to exercise the toolkit for the purpose of dog-food testing.
 
 The bulk of it is platform independent. The current platform wrappers support Windows (Win7+ at least;
 XP should probably work, but hasn't been tested in a while) and macOS (builds against 10.9 frameworks,
-currently tested on macOS 11 and 12), 32-bit builds should work (feel free to report an issue if not;
+currently tested on macOS 11 and 12, Intel or M1), 32-bit builds should work (feel free to report an issue if not;
 my testing is somewhat sporadic), but development focus (especially performance) is for 64-bit versions.
-
-The latest revisions as of Jun 16th 2022 are also supposed to work on M1, some minor glitches are
-still possible, though everything at least appears to be working fine.
 
 ## License
 

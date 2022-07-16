@@ -131,6 +131,7 @@ struct CocoaWindow : Window
 
     UInt32      deadKeyState = 0;
 
+    #if 0   // doesn't seem like this is needed on macOS 12 anymore
     struct TitleBar : Panel
     {
         unsigned size = 0;  // this is in "virtual low-dpi pixels"
@@ -153,6 +154,7 @@ struct CocoaWindow : Window
         }
         
     } titleBar;
+    #endif
 
     CocoaWindow(WindowDelegate & delegate, void * parent, int w, int h)
         : delegate(delegate), scaleFactor(96), keymods(0)
@@ -163,6 +165,7 @@ struct CocoaWindow : Window
         // we'll center the window below, so just pass zero position
         NSRect frame = NSMakeRect(0, 0, w, h );
 
+        #if 0
         // adjust size to fit a custom title-bar if top-level
         if(!getenv("DUST_LOWRES"))
         {
@@ -172,12 +175,13 @@ struct CocoaWindow : Window
 
             titleBar.size = int(frame.size.height - contentFrame.size.height);
         }
-                
+        #endif
+        
         NSWindow * window = 0;
         if(!parent && !delegate.win_want_view_only())
         {
             // bump frame up by titlesize
-            frame.size.height += titleBar.size;
+            //frame.size.height += titleBar.size;
             
             window = [[NSWindow alloc]
                 initWithContentRect:frame
@@ -185,7 +189,7 @@ struct CocoaWindow : Window
                 | NSClosableWindowMask
                 | NSMiniaturizableWindowMask
                 | NSResizableWindowMask
-                | (getenv("DUST_LOWRES") ? 0 : NSFullSizeContentViewWindowMask)
+                //| (getenv("DUST_LOWRES") ? 0 : NSFullSizeContentViewWindowMask)
                 backing: NSBackingStoreBuffered
                 defer: NO
             ];
@@ -206,11 +210,15 @@ struct CocoaWindow : Window
             [window setAppearance:
                 [NSAppearance appearanceNamed:NSAppearanceNameVibrantDark]];
 
-            // make it actually black
-            //[window setBackgroundColor: NSColor.blackColor];
+            // make it match bgColor
+            NSColor *bgColor = [NSColor
+                colorWithDeviceRed: (1/255.f)*((theme.bgColor>>16)&0xff)
+                green:              (1/255.f)*((theme.bgColor>>8)&0xff)
+                blue:               (1/255.f)*((theme.bgColor>>0)&0xff) alpha:1.f];
+            [window setBackgroundColor: bgColor];
             [window setTitlebarAppearsTransparent: TRUE];
 
-            titleBar.setParent(this);
+            //titleBar.setParent(this);
 
         }
 
@@ -305,7 +313,8 @@ struct CocoaWindow : Window
     {
         if([[sysView window] delegate] == sysView)
         {
-            [[sysView window] setContentMinSize:NSMakeSize(w, h + titleBar.size)];
+            //[[sysView window] setContentMinSize:NSMakeSize(w, h + titleBar.size)];
+            [[sysView window] setContentMinSize:NSMakeSize(w, h)];
         }
     }
 
@@ -723,7 +732,7 @@ willPositionSheet:(NSWindow *)sheet
 {
     // sanity check stylemask
     auto style = [[self window] styleMask];
-    sysFrame->titleBar.setEnabled(!(style & NSFullScreenWindowMask));
+    //sysFrame->titleBar.setEnabled(!(style & NSFullScreenWindowMask));
     
     sysFrame->setTrackingArea();
     [super updateTrackingAreas];
@@ -811,6 +820,7 @@ willPositionSheet:(NSWindow *)sheet
 
 -(void)mouseDown:(NSEvent*)event
 {
+    #if 0
     if(sysFrame->titleBar.getParent() && sysFrame->titleBar.getEnabled()
     && ([self convertPoint:[event locationInWindow] fromView:nil].y
         < sysFrame->titleBar.size))
@@ -820,6 +830,7 @@ willPositionSheet:(NSWindow *)sheet
         else [[self window] performWindowDragWithEvent:event];
         return;
     }
+    #endif
     
     MouseEvent ev = sysFrame->buildMouseEvent(
         self, event, 1, [event clickCount]);

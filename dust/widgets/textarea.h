@@ -102,7 +102,7 @@ namespace dust
             // fade towards fgColor
             for(auto & c : parenColors)
             {
-                c = color::lerp(c, 0xffb7b5b4, 0xB0);
+                c = color::lerp(c, theme.fgColor, 0xB0);
             }
 
             sizeX = 0;

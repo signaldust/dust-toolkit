@@ -321,7 +321,13 @@ namespace dust
 
         for(Panel * c : children)
         {
-            if(!c->enabled || c->style.rule == LayoutStyle::MANUAL) continue;
+            if(!c->enabled) continue;
+
+            if(c->style.rule == LayoutStyle::MANUAL)
+            {
+                c->ev_layout();
+                continue;
+            }
 
             switch(c->style.rule)
             {

@@ -303,7 +303,6 @@ namespace dust
             int ev_size_x(float dpi)
             {
                 if(!style.canScrollY) return 0;
-                debugPrint("ev_size_x: %f", dpi);
                 return layout.contentSizeX
                     + (int) ceilf(overscrollX * getParent()->getLayout().w)
                     + (int) ceilf(dpi * scrollbarSizePt / 72.f);
@@ -311,7 +310,6 @@ namespace dust
             int ev_size_y(float dpi)
             {
                 if(!style.canScrollX) return 0;
-                debugPrint("ev_size_y: %f (content size: %d)", dpi, layout.contentSizeY);
                 return layout.contentSizeY
                     + (int) ceilf(overscrollY * getParent()->getLayout().h)
                     + (int) ceilf(dpi * scrollbarSizePt / 72.f);

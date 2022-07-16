@@ -20,6 +20,7 @@ namespace dust
             sizeY = 0;
 
             font.loadDefaultFont(8, 96.f);
+            recalculateSize(96.f);  // need to do this for height
         }
 
         void recalculateSize(float dpi)

@@ -153,9 +153,6 @@ namespace dust
 
             // usually makes sense to fill area
             style.rule = LayoutStyle::FILL;
-
-            style.minSizeX = hscroll.style.minSizeX + spacer.style.minSizeX;
-            style.minSizeY = vscroll.style.minSizeY + spacer.style.minSizeY;
         }
 
         // we don't actually draw anything, but we do lazy scroll-update
@@ -306,6 +303,7 @@ namespace dust
             int ev_size_x(float dpi)
             {
                 if(!style.canScrollY) return 0;
+                debugPrint("ev_size_x: %f", dpi);
                 return layout.contentSizeX
                     + (int) ceilf(overscrollX * getParent()->getLayout().w)
                     + (int) ceilf(dpi * scrollbarSizePt / 72.f);
@@ -313,6 +311,7 @@ namespace dust
             int ev_size_y(float dpi)
             {
                 if(!style.canScrollX) return 0;
+                debugPrint("ev_size_y: %f (content size: %d)", dpi, layout.contentSizeY);
                 return layout.contentSizeY
                     + (int) ceilf(overscrollY * getParent()->getLayout().h)
                     + (int) ceilf(dpi * scrollbarSizePt / 72.f);

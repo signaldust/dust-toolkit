@@ -15,6 +15,12 @@ namespace dust
         return x;
     }
 
+    // 32-bits hash with a separate seed, for PRNGs and such
+    static uint32_t hash32s(uint32_t i, uint32_t seed)
+    {
+        return hash64(i + ((uint64_t)seed << 32));
+    }
+
     // This does 32-bits at a time using hash64 with the upper bytes
     // set to the remaining length of the string.
     //

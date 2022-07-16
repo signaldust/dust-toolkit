@@ -209,8 +209,8 @@ namespace dust
 
         void calculateContentSizeX(float dpi);
         void calculateContentSizeY(float dpi);
-        void calculateLayoutX();
-        void calculateLayoutY();
+        void calculateLayoutX(float dpi);
+        void calculateLayoutY(float dpi);
 
         // broadcast ev_dpi recursively to all children
         void broadcastDPI(float dpi);

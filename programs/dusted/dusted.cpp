@@ -976,7 +976,7 @@ struct AppWindow : dust::Panel
         return true;
     }
 
-    void ev_layout()
+    void ev_layout(float dpi)
     {
         // switch between vertical / horizontal panel split
         // depending on whether the window is wider or taller
@@ -987,7 +987,7 @@ struct AppWindow : dust::Panel
             grid.weightRow(1, 1);
             grid.weightColumn(1, 0);
             
-            layoutAsRoot(getWindow()->getDPI());
+            layoutAsRoot(dpi);
         }
         if(!hstack && panel1.getParent() == grid.getCell(0,1))
         {
@@ -995,7 +995,7 @@ struct AppWindow : dust::Panel
             grid.weightRow(1, 0);
             grid.weightColumn(1, 1);
             
-            layoutAsRoot(getWindow()->getDPI());
+            layoutAsRoot(dpi);
         }
     }
     

@@ -91,7 +91,7 @@ namespace dust
                     columns[i].getLayout().w = w;
                     x += w;
 
-                    columns[i].doLayoutX();
+                    columns[i].doLayoutX(dpi);
                     columns[i].doSizeY(dpi);
                 }
             }
@@ -112,7 +112,7 @@ namespace dust
         }
 
         // finish layout for y-axis
-        void ev_layout() override
+        void ev_layout(float dpi) override
         {
             // figure out normalized weights and the amount of
             // extra space that we actually have
@@ -162,7 +162,7 @@ namespace dust
             {
                 columns[i].getLayout().y = 0;
                 columns[i].getLayout().h = y;
-                columns[i].doLayoutY();
+                columns[i].doLayoutY(dpi);
             }
         }
 
@@ -217,8 +217,8 @@ namespace dust
             void doSizeX(float dpi) { layout.w = 0; calculateContentSizeX(dpi); }
             void doSizeY(float dpi) { layout.h = 0; calculateContentSizeY(dpi); }
 
-            void doLayoutX() { calculateLayoutX(); }
-            void doLayoutY() { calculateLayoutY(); }
+            void doLayoutX(float dpi) { calculateLayoutX(dpi); }
+            void doLayoutY(float dpi) { calculateLayoutY(dpi); }
         } *columns;
 
         struct Cell : Panel

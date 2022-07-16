@@ -92,7 +92,7 @@ namespace dust
 
         // called when control's layout has been finished
         // including processing of any children
-        virtual void ev_layout() {}
+        virtual void ev_layout(float dpi) {}
 
         // return true if the control wants events at this position
         // this is used for fine-grained testing inside the layout box

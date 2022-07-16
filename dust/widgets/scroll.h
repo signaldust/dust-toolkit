@@ -251,11 +251,11 @@ namespace dust
             vscroll.setEnabled(enableV);
         }
 
-        void ev_layout()
+        void ev_layout(float dpi)
         {
             // we need to do this again here for overscroll to work
             // FIXME: hard-coding for size-computation here is a bit ugly
-            layoutAsRoot(getWindow() ? getWindow()->getDPI() : 96.f);
+            layoutAsRoot(dpi);
             updateScrollBars();
         }
 

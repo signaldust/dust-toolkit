@@ -136,9 +136,9 @@ namespace dust
     void PanelParent::layoutAsRoot(float dpi)
     {
         calculateContentSizeX(dpi);
-        calculateLayoutX();
+        calculateLayoutX(dpi);
         calculateContentSizeY(dpi);
-        calculateLayoutY();
+        calculateLayoutY(dpi);
 
         updateWindowOffsets();
     }
@@ -273,7 +273,7 @@ namespace dust
         layout.contentSizeY = (std::max)(contentSize, layout.h);
     }
 
-    void PanelParent::calculateLayoutX()
+    void PanelParent::calculateLayoutX(float dpi)
     {
         layout.contentSizeX = (std::max)(layout.contentSizeX, layout.w);
         int box0 = layout.contentPadding.west;
@@ -308,12 +308,12 @@ namespace dust
                 break;
             }
 
-            c->calculateLayoutX();
+            c->calculateLayoutX(dpi);
         }
 
     }
 
-    void PanelParent::calculateLayoutY()
+    void PanelParent::calculateLayoutY(float dpi)
     {
         layout.contentSizeY = (std::max)(layout.contentSizeY, layout.h);
         int box0 = layout.contentPadding.north;
@@ -325,7 +325,7 @@ namespace dust
 
             if(c->style.rule == LayoutStyle::MANUAL)
             {
-                c->ev_layout();
+                c->ev_layout(dpi);
                 continue;
             }
 
@@ -354,9 +354,8 @@ namespace dust
                 break;
             }
 
-            c->calculateLayoutY();
-
-            c->ev_layout();
+            c->calculateLayoutY(dpi);
+            c->ev_layout(dpi);
         }
     }
 

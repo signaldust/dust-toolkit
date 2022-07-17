@@ -6,6 +6,11 @@
 
 namespace dust
 {
+    // This can be used as a SubWindow container to avoid useless reflows
+    //
+    // It should NOT be used as a parent for anything else.
+    struct SubwindowArea : Panel { void reflowChildren() { } };
+
     // This is an MDI-like sub-window that's contained inside it's parent
     struct Subwindow : Panel
     {
@@ -61,13 +66,17 @@ namespace dust
 
             // don't allow silly small windows
             contentPanel.style.minSizeX = titleMinVisiblePt;
-            
             contentPanel.setParent(this);
 
+            frame.setParent(this);
             titleBar.style.rule = LayoutStyle::NORTH;
-            titleBar.setParent(this);
+            titleBar.setParent(frame);
             btnClose.setParent(titleBar);
             title.setParent(titleBar);
+
+            monitorMouseDown.setParent(this);
+            monitorMouseDown.onMouseDown =
+            [this]() { setParent(getParent()); redraw(true); };
         }
 
         void clipPosition(float dpi)
@@ -99,9 +108,6 @@ namespace dust
             {
                 dragX = ev.x;
                 dragY = ev.y;
-
-                // this is special cased by panel -> move to top
-                setParent(getParent());
             }
 
             if(ev.type == MouseEvent::tMove && ev.button == 1)
@@ -148,9 +154,23 @@ namespace dust
         }
 
     private:
+        Panel           frame;
         Panel           titleBar;
         Panel           contentPanel;
 
         int             dragX, dragY;
+
+        // We add this as a layer on top of content panel to
+        // check for mouse down events -> pop window to top
+        struct MonitorMouseDown : Panel
+        {
+            Notify      onMouseDown;
+            bool ev_mouse(const MouseEvent & ev)
+            {
+                if(ev.type == MouseEvent::tDown) onMouseDown();
+                // never consume anything
+                return false;
+            }
+        } monitorMouseDown;
     };
 }

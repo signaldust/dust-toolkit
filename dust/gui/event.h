@@ -94,10 +94,6 @@ namespace dust
         // including processing of any children
         virtual void ev_layout(float dpi) {}
 
-        // return true if the control wants events at this position
-        // this is used for fine-grained testing inside the layout box
-        virtual bool ev_hittest(int x, int y) { return true; }
-
         // ev_mouse handles most mouse events
         // return false to bubble up
         virtual bool ev_mouse(const MouseEvent &) { return false; }

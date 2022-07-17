@@ -116,12 +116,8 @@ namespace dust
             Panel * target = c->dispatchMouseEvent(ev);
             if(target) return target;
 
-            // test the child itself
-            if(c->ev_hittest(x, y))
-            {
-                MouseEvent eRel = ev; eRel.x = x; eRel.y = y;
-                if(c->ev_mouse(eRel)) return c;
-            }
+            MouseEvent eRel = ev; eRel.x = x; eRel.y = y;
+            if(c->ev_mouse(eRel)) return c;
         }
 
         return 0;

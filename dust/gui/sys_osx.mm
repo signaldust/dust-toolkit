@@ -56,7 +56,10 @@ using namespace dust;
 #error DUST_COCOA_PREFIX not defined!
 #endif
 
-
+// Adds undocumented "appearance" argument to "popUpMenuPositioningItem":
+@interface NSMenu (MISSINGOrder)
+- (BOOL)popUpMenuPositioningItem:(id)arg1 atLocation:(struct CGPoint)arg2 inView:(id)arg3 appearance:(id)arg4;
+@end
 //////////////////////
 /// TEXT CLIPBOARD ///
 //////////////////////
@@ -219,9 +222,8 @@ struct CocoaWindow : Window
             [window setTitlebarAppearsTransparent: TRUE];
 
             //titleBar.setParent(this);
-
         }
-
+        
 #if DUST_USE_OPENGL
         NSOpenGLPixelFormatAttribute attrs[] =
         {
@@ -521,7 +523,8 @@ struct CocoaWindow : Window
 
             // this seems to run a modal loop
             [menu popUpMenuPositioningItem:nil
-                atLocation:p inView:frame->sysView];
+                atLocation:p inView:frame->sysView
+                appearance:[NSAppearance appearanceNamed:NSAppearanceNameVibrantDark]];
 
             // activating a menu ends dragging operation
             // because we won't be getting the rest of it

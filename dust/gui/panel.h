@@ -331,6 +331,9 @@ namespace dust
         void focus();
 
         // set (or clear is newParent is null) the parent of this control
+        //
+        // NOTE: setParent(getParent()) doesn't actually cause reparenting
+        // but simply moves the panel last after any of it's siblings
         void setParent(PanelParent * newParent);
 
         // since we often want to use references, make it possible

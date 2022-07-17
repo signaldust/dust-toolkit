@@ -53,6 +53,22 @@ namespace dust
 
     void Panel::setParent(PanelParent * newParent)
     {
+        // special case shortcut (doesn't do full reparenting)
+        if(parent == newParent)
+        {
+            if(!parent) return;
+            if(!getSiblingNext()) return;   // already last
+
+            // these only manipulate the linked list
+            // we don't need anything else in this special case
+            parent->removeChild(this);
+            parent->addChild(this);
+
+            // reflow
+            reflow();
+            return;
+        }
+    
         if(parent)
         {
             Window * win = getWindow();

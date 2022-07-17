@@ -4,6 +4,8 @@
 #include "dust/gui/panel.h"
 #include "button.h"
 
+// NOTE: This is draft status and we might consider doing what we do with tabs
+// and simply making the subwindows themselves internal to SubwindowArea
 namespace dust
 {
     // This can be used as a SubWindow container to avoid useless reflows

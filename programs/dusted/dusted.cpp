@@ -589,9 +589,11 @@ struct BuildPanel : dust::Panel
         if(slave.isAlive()) { return; } // FIXME: ?
 
         slave.args.clear();
+        
+#ifndef _WIN32  // FIXME: can we just run the command as-is on Windows?
         slave.pushArg("/bin/sh");
         slave.pushArg("-c");
-
+#endif
         std::vector<char>   cmd;
         commandBox.outputContents(cmd);
         cmd.push_back(0);
@@ -682,7 +684,7 @@ struct BuildPanel : dust::Panel
                 buildButtonLabel.setText("make");
                 buildActive = false;
                 
-                if(!error)
+                if(!error && isBuild)
                 {
                     autoClose = true;
                     autoCloseMs = dust::getTimeMs();

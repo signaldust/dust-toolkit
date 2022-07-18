@@ -74,11 +74,14 @@ namespace dust
                     wTotal += columns[i].weight;
                     extraW -= columns[i].getLayout().contentSizeX;
                 }
+                
+                bool pureWeights = (ignoreContentSize && wTotal > 0);
+                if(pureWeights) extraW = layout.w;
 
                 int x = 0;
                 for(int i = 0; i < nColumn; ++i)
                 {
-                    int w = columns[i].getLayout().contentSizeX;
+                    int w = pureWeights ? 0 : columns[i].getLayout().contentSizeX;
                     if(wTotal > 0 && extraW > 0)
                     {
                         // if this seems convoluted, it's done this way
@@ -135,18 +138,22 @@ namespace dust
                 rows[j][0].getLayout().contentSizeY = h;
             }
 
+            bool pureWeights = (ignoreContentSize && wTotal > 0);
+            if(pureWeights) extraH = layout.h;
+
             // do a second pass to setup the layouts
             int y = 0;
             for(int j = 0; j < rows.size(); ++j)
             {
-                int h = rows[j][0].getLayout().contentSizeY;
+                int h = pureWeights ? 0 : rows[j][0].getLayout().contentSizeY;
 
                 if(wTotal > 0 && extraH > 0)
                 {
                     // see ev_layout_x for comment
                     int addH = (int) (extraH * weightRows[j] / wTotal);
                     wTotal -= weightRows[j];
-                    extraH -= addH; h += addH;
+                    extraH -= addH;
+                    h += addH;
                 }
 
                 // then set this as the height for all the cells
@@ -192,6 +199,8 @@ namespace dust
             if(col < nColumn) columns[col].weight = w;
         }
 
+        void setIgnoreContentSize(bool b) { ignoreContentSize = b; }
+
         // insert component into a grid cell
         void insert(unsigned col, unsigned row, Panel & ctl)
         {
@@ -228,6 +237,8 @@ namespace dust
 
         std::vector<Cell*> rows;
         std::vector<float> weightRows;
+
+        bool    ignoreContentSize = false;
     };
 
     template <unsigned W, unsigned H = 0>

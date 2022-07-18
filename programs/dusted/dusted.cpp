@@ -520,16 +520,20 @@ struct BuildPanel : dust::Panel
 {
     BuildScrollPanel    scroll;
 
-    dust::LogView        output;
+    dust::LogView       output;
 
     std::vector<char>   buffer;
+
+    dust::SlaveProcess  slave;
     
-    dust::SlaveProcess   slave;
-    
-    dust::Panel        header;
-    dust::Button         buildButton;
-    dust::Label          buildButtonLabel;
-    dust::Label          status;
+    dust::Grid<2,1>     headerGrid;
+    dust::Panel         header;
+    dust::Button        buildButton;
+    dust::Label         buildButtonLabel;
+    dust::Label         status;
+
+    dust::TextButton    commandButton;
+    dust::TextBox       commandBox;
     
     bool                buildActive = false;
     
@@ -539,13 +543,29 @@ struct BuildPanel : dust::Panel
     BuildPanel()
     {
         style.rule = dust::LayoutStyle::SOUTH;
+
+        headerGrid.setParent(this);
+        headerGrid.style.rule = dust::LayoutStyle::NORTH;
         
-        header.setParent(this);
+        headerGrid.insert(0,0, header);
+        headerGrid.weightColumn(0, 1.f);
+        headerGrid.weightColumn(1, 1.f);
+        headerGrid.setIgnoreContentSize(true);
+        
         header.style.rule = dust::LayoutStyle::NORTH;
         
         buildButton.setParent(header);
         buildButton.style.rule = dust::LayoutStyle::WEST;
         buildButton.onClick = [this](){ doBuild(); };
+
+        commandButton.label.setText("Run");
+        commandButton.style.rule = dust::LayoutStyle::EAST;
+        
+        commandBox.style.rule = dust::LayoutStyle::FILL;
+        commandBox.onEnter = [this](){ doCommand(); };
+
+        headerGrid.insert(1,0, commandButton);
+        headerGrid.insert(1,0, commandBox);
         
         buildButtonLabel.setParent(buildButton);
         buildButtonLabel.font.loadDefaultFont(7.f, 72.f, true);
@@ -564,6 +584,22 @@ struct BuildPanel : dust::Panel
         output.setParent(scroll.getContent());
     }
 
+    void doCommand()
+    {
+        if(slave.isAlive()) { return; } // FIXME: ?
+
+        slave.args.clear();
+        slave.pushArg("/bin/sh");
+        slave.pushArg("-c");
+
+        std::vector<char>   cmd;
+        commandBox.outputContents(cmd);
+        cmd.push_back(0);
+        slave.pushArg(cmd.data());
+
+        runCommand("Command running...");
+    }
+
     void doBuild()
     {
         // if we already have a build, kill it and return
@@ -574,6 +610,11 @@ struct BuildPanel : dust::Panel
         slave.pushArg("make");
         slave.pushArg("-kj4");    // keep going + parallel build
 
+        runCommand("Building...");
+    }
+
+    void runCommand(const char * statusTxt)
+    {
         // make sure panel is visible
         setEnabled(true);
         
@@ -586,7 +627,7 @@ struct BuildPanel : dust::Panel
         slave.closeInput();
         
         buildActive = true;
-        status.setText("Building...");
+        status.setText(statusTxt);
         status.color = dust::theme.warnColor;
         output.bgColor = theme.bgColor;
         
@@ -630,7 +671,12 @@ struct BuildPanel : dust::Panel
             {
                 bool error = (0 != slave.exitStatus);
                 // hide panel when build was good
-                status.setText(error ? "Build failed!" : "Build finished.");
+                bool isBuild = (slave.args[0] == "make");
+                const char * txtFailure =
+                    (isBuild ? "Build failed!" : "Command failed!");
+                const char * txtSuccess =
+                    (isBuild ? "Build finished." : "Command finished.");
+                status.setText(error ? txtFailure : txtSuccess);
                 status.color = (error ? dust::theme.errColor : dust::theme.goodColor);
                 output.bgColor = dust::color::lerp(theme.winColor, status.color, 0x18);
                 buildButtonLabel.setText("make");

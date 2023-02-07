@@ -206,12 +206,12 @@ namespace dust
 
 					if(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 					{
-						subDirs.push_back(
+						subDirs.emplace_back(
 							new TreeViewDir(newPath, data.cFileName, level + 1));
 					}
 					else
 					{
-						files.push_back(
+						files.emplace_back(
 							new TreeViewNode(newPath, data.cFileName, level + 1));
 					}
 				} while (FindNextFile(hFind, &data));

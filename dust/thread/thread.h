@@ -18,6 +18,7 @@
 # error "Unknown platform"
 #endif
 
+#include <atomic>
 #include <thread>
 #include <chrono>
 

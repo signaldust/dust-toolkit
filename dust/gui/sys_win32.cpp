@@ -395,7 +395,7 @@ struct Win32Window : Window, Win32Callback
         Win32Window * win;
         HMENU   hMenu;
 
-        ~Win32Menu() { }
+        ~Win32Menu() { DestroyMenu(hMenu); }
     
         void addItem(const char * txt, unsigned id, bool enabled, bool tick)
         {

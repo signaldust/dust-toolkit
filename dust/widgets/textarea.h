@@ -763,7 +763,7 @@ namespace dust
 
             float sw = font->getCharAdvanceW(' ');
 
-            float x = 0, y = lineHeight + .5f * font->getAscent();
+            float x = 0, y = lineHeight + .5f * font->getDescent();
 
             unsigned bytePos = 0, charPos = 0, prevCharPos = 0;
 

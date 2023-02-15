@@ -374,6 +374,7 @@ struct Win32Window : Window, Win32Callback
 
         ofn.Flags = OFN_PATHMUSTEXIST;
         ofn.Flags |= OFN_OVERWRITEPROMPT;
+        ofn.Flags |= OFN_NOCHANGEDIR;
 
         // if non-zero, user clicked OK
         if(GetSaveFileName(&ofn))

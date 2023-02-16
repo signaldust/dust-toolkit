@@ -191,8 +191,12 @@ namespace dust
         bool isAlive() { return 0 != slaveHandle; }
         void kill()
         {
-            if(slaveHandle)
-                GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, slaveProcGroup);
+            if(!slaveHandle) return;
+
+            // we need to attach to the process or this won't work
+            AttachConsole(slaveProcGroup);
+            GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, slaveProcGroup);
+            FreeConsole();
         }
 #else
         bool isAlive() { return 0 != slavePid; }

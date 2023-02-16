@@ -590,7 +590,10 @@ struct BuildPanel : dust::Panel
 
         slave.args.clear();
         
-#ifndef _WIN32  // FIXME: can we just run the command as-is on Windows?
+#ifdef _WIN32  // FIXME: can we just run the command as-is on Windows?
+        slave.pushArg("cmd");
+        slave.pushArg("/C");
+#else
         slave.pushArg("/bin/sh");
         slave.pushArg("-c");
 #endif

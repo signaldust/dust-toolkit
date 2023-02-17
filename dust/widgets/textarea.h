@@ -55,6 +55,7 @@ namespace dust
         bool    autoCloseParens = false;
         
         unsigned tabStop = 4;
+        unsigned wrapMark = 80;
 
         ARGB    cursorColor;
 
@@ -525,8 +526,6 @@ namespace dust
             RenderContext rcMargin(rc,
                 -getParent()->getLayout().contentOffsetX, 0);
 
-            rc.clear(theme.bgColor);
-
             ARGB cursorUseColor = cursorColor;
             if(getWindow()->getFocus() != this) cursorUseColor = 0;
 
@@ -534,6 +533,12 @@ namespace dust
 
             float sw = font->getCharAdvanceW(' ');
             float x = 0, y = lineHeight - font->getDescent();
+
+            rc.clear(theme.bgColor);
+            // draw a word-wrap margin (eg. 80 characters)
+            rc.fillRect(
+                paint::Color(color::lerp(theme.bgColor, theme.bgMidColor, 0x80)),
+                int(floor(lineMargin + x + wrapMark*sw)), 0, 1, layout.h);
 
             // when inSelection is true, selectX gives the filled
             // pixel coordinate on current line to allow pixel fills

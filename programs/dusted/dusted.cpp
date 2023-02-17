@@ -560,6 +560,7 @@ struct BuildPanel : dust::Panel
 
         commandButton.label.setText("Run");
         commandButton.style.rule = dust::LayoutStyle::EAST;
+        commandButton.onClick = [this](){ doCommand(); };
         
         commandBox.style.rule = dust::LayoutStyle::FILL;
         commandBox.onEnter = [this](){ doCommand(); };

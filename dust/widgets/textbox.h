@@ -383,6 +383,7 @@ namespace dust
             {
                 case SCANCODE_RETURN:
                 case SCANCODE_RETURN2:
+                case SCANCODE_KP_ENTER:
                     if(keepSel) onShiftEnter(); else onEnter(); break;
 
                 case SCANCODE_ESCAPE: onEscape(); break;

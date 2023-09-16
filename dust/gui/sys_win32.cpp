@@ -56,7 +56,7 @@ static LRESULT CALLBACK wheelHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
         // get window under cursor
         HWND hwnd = WindowFromPoint(hs->pt);
         // if there's one, and it matches the plugin DLL hInstance, redirect
-        if(hwnd && GetWindowLong(hwnd, GWLP_HINSTANCE) == (LONG) ::mouseHookInstance) {
+        if(hwnd && (HINSTANCE) GetWindowLongPtr(hwnd, GWLP_HINSTANCE) == ::mouseHookInstance) {
             // PostMessage a custom wheel message here
             // hs->pt gives you the mousepoint
             // hs->mousedata hiword has the usual signed scroll amount

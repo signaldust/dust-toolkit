@@ -462,4 +462,103 @@ namespace dust
 
     };
 
+    
+    // Simple thread-safe singleton manager.
+    // Note that this requires default constructor on the managed type.
+    //
+    // This has no public API, so use the SharedRef RAII class for access.
+    // Platform specific (interlocked + sleep).
+    //
+    // Finally, it's possible to construct this with an internal reference.
+    // This is useful for editor data-caches and such that are slow to calc.
+    //
+    template <typename T>
+    struct SharedSingleton
+    {
+        template <typename T> friend struct SharedRef;
+
+        // if "eager" is true, then this will internally hold one reference
+        // in this case it's just a thread-safe global
+        SharedSingleton(bool eager = false) { if(eager) { addRef(); keepAlive = true; } }
+        ~SharedSingleton() { if(keepAlive) release(); }
+        
+    private:
+        unsigned refs  = 0;
+        T * object     = 0;
+
+        // do we keep this alive
+        bool keepAlive;
+           
+        void addRef()
+        {
+            // first do atomic increment and check value
+            // in the first case (1) we need to create an object
+            // in the second case (more), we need to check the object
+            if(1 == __atomic_add_fetch(
+                (volatile LONG*)&refs, 1, __ATOMIC_SEQ_CST))
+            {
+                // there might be a previous object being destroyed
+                // so spin on the pointer until it's back to zero
+                do { memfence(); } while(object);
+
+                // once the object is zero, create one
+                object = new T();
+                memfence();
+            }
+            else
+            {
+                // since creation gets done after increment
+                // must spin here until the assignment is done
+                do { memfence(); } while(!object);
+            }
+        }
+
+        void release()
+        {
+            // first do atomic decrement and check value
+            // in the first case (0) we need to destroy the object
+            // in the second case (1+) we don't need to do anything
+            if(0 == __atomic_sub_fetch(
+                (volatile LONG*)&refs, 1, __ATOMIC_SEQ_CST))
+            {
+                // this is just the trivial thing, since
+                // addRef() guards against the races
+                delete object;
+                object = 0;
+                memfence();
+            }
+        }
+    };
+
+    // RAII reference to a shared singleton.
+    // This can be set "lazy" in which case it only refs
+    // on the first dereference. One can also explicitly
+    // call release() to reference again on next deref.
+    template <typename T>
+    struct SharedRef
+    {
+        SharedRef(SharedSingleton<T> & s, bool lazy = false)
+            : ss(s), needRef(lazy)
+        {
+            if(!lazy) ss.addRef();
+        }
+        ~SharedRef() { release(); }
+        void release() { if(!needRef) { ss.release(); needRef = true; } }
+
+        T * get() 
+        {
+            if(needRef) 
+            {
+                ss.addRef();
+                needRef = false;
+            }
+            return ss.object; 
+        }
+
+        T * operator->() { return get(); }
+    private:
+        SharedSingleton<T> & ss;
+        bool needRef;
+    };
+    
 };

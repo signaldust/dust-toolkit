@@ -34,9 +34,9 @@ ifeq ($(OS),Windows_NT)
     DUST_LINKLIB ?= llvm-lib /out:$(LIBRARY)
     CLEANALL := tools\win\rm-rf.bat $(DUST_BUILDDIR)
     
-    LINKFLAGS += --rtlib=compiler-rt $(LIBRARY) -luser32 -lgdi32
+    LINKFLAGS += -Xlinker /debug --rtlib=compiler-rt $(LIBRARY) -luser32 -lgdi32
 
-    CFLAGS += -D_CRT_SECURE_NO_WARNINGS
+    CFLAGS += -gcodeview -D_CRT_SECURE_NO_WARNINGS
 
     #CFLAGS += -DDUST_USE_OPENGL=0
 

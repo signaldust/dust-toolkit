@@ -26,6 +26,9 @@ namespace dust
     // This is a super-simple synchronous thread-pooling class.
     // It runs a set of parallel tasks using a fixed thread-pool.
     //
+    // NOTE: On Windows a static ThreadPool in DLL hangs on unload.
+    // Use dust::SharedSingleton (in thread.h) to explicitly unload.
+    //
     // To use this:
     //  1. derive from ThreadTask and implement threadpool_runtask()
     //  2. create an array of pointers to the derived tasks

@@ -463,12 +463,6 @@ struct Win32Window : Window, Win32Callback
 			DIB_RGB_COLORS);
 	}
 	
-	// for now, only allow one mouse button to drag at a time
-	unsigned mouseButton = 0;
-	
-	void startSystemCapture() { SetCapture(hwnd); }
-	void endSystemCapture() { if(GetCapture() == hwnd) ReleaseCapture(); }
-	
 	int nClickBtn = 0;
 	int nClicks = 0;
 	RECT clickRect;
@@ -608,8 +602,15 @@ LRESULT Win32Window::callback(
 	case WM_CAPTURECHANGED:
 		// cancel drag, then send mouse exit to notify the control
         // this is a situation that can't happen on OSX though?
-        cancelDrag();
-        sendMouseExit();
+        //
+        // NOTE: in some situations (eg. menu just closed) we can end up
+        // getting capture changed notifications "losing focus" to ourselves
+        // which we need to ignore, otherwise dragging doesn't start
+        if((HWND) lParam != hwnd)
+        {
+            cancelDrag();
+            sendMouseExit();
+        }
 		break;
 
     // FIXME: this is essentially boilerplate for mouse messages

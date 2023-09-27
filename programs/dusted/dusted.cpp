@@ -591,7 +591,7 @@ struct BuildPanel : dust::Panel
 
         slave.args.clear();
         
-#ifdef _WIN32  // FIXME: can we just run the command as-is on Windows?
+#ifdef _WIN32
         slave.pushArg("cmd");
         slave.pushArg("/C");
 #else
@@ -1003,6 +1003,7 @@ struct AppWindow : dust::Panel
         if(mods == (dust::KEYMOD_CMD|dust::KEYMOD_SHIFT))
         switch(vk)
         {
+            case dust::SCANCODE_B: buildPanel.doCommand(); break;
             case dust::SCANCODE_SLASH:
             {
                 auto & panel = (panel0.contains(activeTab)) ? panel0 : panel1;

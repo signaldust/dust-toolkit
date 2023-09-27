@@ -1228,11 +1228,13 @@ namespace dust
             // this is less than ideal, but without atomic renames
             // there isn't necessarily any better option?
     		if((!oldFile || !rename(path.c_str(), tmp2.c_str()))
-    		&& !rename(tmp.c_str(), path.c_str())
-    		&& (!oldFile || !_unlink(tmp2.c_str())))
-    		{
-    			buffer.setNotModified();
-    		}
+    		&& !rename(tmp.c_str(), path.c_str()))
+            {
+                buffer.setNotModified();
+            }
+            
+            // this might fail if in use, but that's fine
+    		if(oldFile) _unlink(tmp2.c_str());
 #endif
         }
 

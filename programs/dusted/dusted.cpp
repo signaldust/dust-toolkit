@@ -201,6 +201,8 @@ namespace dust
 			if ( hFind != INVALID_HANDLE_VALUE ) {
 				do {
 					if(data.cFileName[0] == '.') continue;
+                    // ignore the temp files textarea sometimes leaves behind
+                    if(strstr(data.cFileName, ".$tmp")) continue;
 				
 					std::string newPath = path + '/' + data.cFileName;
 

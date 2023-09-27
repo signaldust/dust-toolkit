@@ -191,8 +191,9 @@ namespace dust
                         }
                     }
                 }
+                return true;
             }
-            return true;
+            return false;
         }
 
         void render(RenderContext & rc)

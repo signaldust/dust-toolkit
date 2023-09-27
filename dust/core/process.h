@@ -52,6 +52,7 @@ namespace dust
             
             HANDLE childInput = 0;
             HANDLE childOutput = 0;
+            HANDLE childError = 0;
 
             if(!CreatePipe(&childInput, &slaveInput, &saAttr, 0))
             {
@@ -66,13 +67,23 @@ namespace dust
             SetHandleInformation(slaveInput, HANDLE_FLAG_INHERIT, 0);
             SetHandleInformation(slaveOutput, HANDLE_FLAG_INHERIT, 0);
 
+            // duplicate child-side for STDERR
+            HANDLE currentProcess = GetCurrentProcess();
+            if(!DuplicateHandle(
+                currentProcess, childOutput,
+                currentProcess, &childError,
+                0, TRUE, DUPLICATE_SAME_ACCESS))
+            {
+                dust::debugPrint("SlaveProcess::start(): DuplicateHandle failed\n");
+            }
+
             PROCESS_INFORMATION procInfo;
-            STARTUPINFO startInfo;
+            STARTUPINFOA startInfo;
 
             ZeroMemory(&procInfo, sizeof(procInfo));
             ZeroMemory(&startInfo, sizeof(startInfo));
-            startInfo.cb = sizeof(STARTUPINFO);
-            startInfo.hStdError = childOutput;
+            startInfo.cb = sizeof(STARTUPINFOA);
+            startInfo.hStdError = childError;
             startInfo.hStdOutput = childOutput;
             startInfo.hStdInput = childInput;
             startInfo.wShowWindow = SW_HIDE;
@@ -97,6 +108,7 @@ namespace dust
 
             CloseHandle(childInput);
             CloseHandle(childOutput);
+            CloseHandle(childError);
             CloseHandle(procInfo.hThread);
 
             // we'll keep the process handle
@@ -234,8 +246,8 @@ namespace dust
             while(true)
             {
 #ifdef _WIN32
-                DWORD n;
-
+                // This funky dance is because PeekNP doesn't remove data
+                DWORD n = 0;
                 if(!PeekNamedPipe(slaveOutput, 0, 0, 0, &n, 0)) break;
                 if(!n) break;
                 if(n > bufSize) n = bufSize;

@@ -1128,6 +1128,12 @@ struct Dusted : dust::Application
         win->setTitle("");
         win->toggleMaximize();
 
+        dust::Surface sIcon(32, 32);
+        dust::RenderContext rcIcon(sIcon);
+
+        testIcon.renderFit(rcIcon, sIcon.getSizeX(), sIcon.getSizeY());
+        win->setIcon(sIcon);
+
         appWin.setParent(win);
     }
 

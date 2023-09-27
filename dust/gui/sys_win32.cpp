@@ -442,6 +442,74 @@ struct Win32Window : Window, Win32Callback
         
         return menu;
 	}
+
+    HICON   windowIcon = 0;
+    HICON   windowIconSmall = 0;
+
+    void setIcon(Surface & icon)
+    {
+        // deal with pitch != sizeX
+        Surface tmp;        
+        Surface * src = &icon;
+        if(icon.getSizeX() != icon.getPitch())
+        {
+            src = &tmp;
+            tmp.validate(icon.getSizeX(), icon.getSizeY(), 1);
+            if(tmp.getSizeX() != tmp.getPitch())
+            {
+                dust::debugPrint("setIcon(): internal error");
+            }
+
+            for(int y = 0; y < icon.getSizeY(); ++y)
+            {
+                for(int x = 0; x < icon.getSizeX(); ++x)
+                {
+                    tmp.getPixels()[x + tmp.getPitch()*y]
+                        = icon.getPixels()[x + icon.getPitch()*y];
+                }
+            }
+        }
+
+        ICONINFO ii = { };
+        ii.fIcon = TRUE;
+
+        // FIXME: deal with pitch vs. sizeX
+        ii.hbmColor = CreateBitmap(
+            src->getPitch(), src->getSizeY(), 1, 32, src->getPixels());
+        ii.hbmMask = ii.hbmColor;
+        
+        HICON newIcon = CreateIconIndirect(&ii);
+        SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)newIcon);
+        DeleteObject(ii.hbmColor);
+
+        // Windows scales like garbage, so do it manually
+        tmp.validate(icon.getSizeX() / 2, icon.getSizeY() / 2);
+        for(int y = 0; y < tmp.getSizeY(); ++y)
+        {
+            for(int x = 0; x < tmp.getSizeX(); ++x)
+            {
+                auto A = color::lerp(
+                    icon.getPixels()[icon.getPitch()*2*y + 2*x],
+                    icon.getPixels()[icon.getPitch()*2*y + 2*x+1], 0x80);
+                auto B = color::lerp(
+                    icon.getPixels()[icon.getPitch()*(2*y+1) + 2*x],
+                    icon.getPixels()[icon.getPitch()*(2*y+1) + 2*x+1], 0x80);
+                    
+                tmp.getPixels()[x + tmp.getPitch()*y] = color::lerp(A, B, 0x80);
+            }
+        }
+        ii.hbmColor = CreateBitmap(
+            tmp.getPitch(), tmp.getSizeY(), 1, 32, tmp.getPixels());
+        ii.hbmMask = ii.hbmColor;
+        HICON newIconSmall = CreateIconIndirect(&ii);
+        SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)newIconSmall);
+        DeleteObject(ii.hbmColor);
+        
+        if(windowIcon) DestroyIcon(windowIcon);
+        if(windowIconSmall) DestroyIcon(windowIconSmall);
+        windowIcon = newIcon;
+        windowIconSmall = newIconSmall;
+    }
 	
 	void platformBlit(Surface & backBuf)
 	{

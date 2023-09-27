@@ -130,6 +130,9 @@ namespace dust
         // note that we don't require this to be supported
         virtual void toggleMaximize() {}
 
+        // set window icon - might not be supported
+        virtual void setIcon(dust::Surface & icon) {}
+
         // set window title
         virtual void setTitle(const char * txt) = 0;
 

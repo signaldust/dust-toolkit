@@ -427,6 +427,7 @@ struct Win32Window : Window, Win32Callback
                 | TPM_VERPOSANIMATION | TPM_RIGHTBUTTON;
 
             win->cancelDrag();
+            if(GetCapture()) { ReleaseCapture(); }
             
             win->activeMenu = this;
             TrackPopupMenu(hMenu, flags, p.x, p.y, 0, win->hwnd, 0);
@@ -708,6 +709,8 @@ LRESULT Win32Window::callback(
 
     case WM_LBUTTONDOWN:
         {
+            SetCapture(hwnd);
+            
             int x = MAKEPOINTS(lParam).x;
             int y = MAKEPOINTS(lParam).y;
 
@@ -717,7 +720,6 @@ LRESULT Win32Window::callback(
 				getClickCount(1, x, y), keymods);
             sendMouseEvent(ev);
 
-            SetCapture(hwnd);
         }
         break;
 
@@ -737,6 +739,8 @@ LRESULT Win32Window::callback(
 
     case WM_RBUTTONDOWN:
         {
+            SetCapture(hwnd);
+            
             int x = MAKEPOINTS(lParam).x;
             int y = MAKEPOINTS(lParam).y;
 
@@ -745,8 +749,6 @@ LRESULT Win32Window::callback(
             MouseEvent ev(MouseEvent::tDown, x, y, 2, 
 				getClickCount(2, x, y), keymods);
             sendMouseEvent(ev);
-            
-            SetCapture(hwnd);
         }
         break;
 
@@ -766,6 +768,8 @@ LRESULT Win32Window::callback(
 
     case WM_MBUTTONDOWN:
         {
+            SetCapture(hwnd);
+            
             int x = MAKEPOINTS(lParam).x;
             int y = MAKEPOINTS(lParam).y;
 
@@ -774,8 +778,6 @@ LRESULT Win32Window::callback(
             MouseEvent ev(MouseEvent::tDown, x, y, 3, 
 				getClickCount(2, x, y), keymods);
             sendMouseEvent(ev);
-            
-            SetCapture(hwnd);
         }
         break;
 

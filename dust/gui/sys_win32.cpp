@@ -8,6 +8,8 @@
     "version='6.0.0.0' processorArchitecture='*' "\
     "publicKeyToken='6595b64144ccf1df' language='*'\"")
 
+#pragma comment(lib, "shell32.lib")
+    
 #include <windows.h>
 #include <commctrl.h>
 
@@ -234,6 +236,8 @@ struct Win32Window : Window, Win32Callback
         if(parent) style |= WS_CHILD | WS_VISIBLE;
         else style |= WS_OVERLAPPEDWINDOW;
 
+        if(delegate.win_can_dropfiles()) ex_style |= WS_EX_ACCEPTFILES;
+
         windowClass.registerClass();
         hwnd = CreateWindowExA(ex_style,
             (LPSTR)windowClass.winClassAtom,
@@ -323,6 +327,21 @@ struct Win32Window : Window, Win32Callback
 		
 		::SetWindowPos(hwnd, 0, 0, 0, w, h,
 			SWP_NOMOVE | SWP_NOREPOSITION | SWP_SHOWWINDOW);
+    }
+
+    void toggleMaximize()
+    {
+        WINDOWPLACEMENT wp = {};
+        wp.length = sizeof(WINDOWPLACEMENT);
+        GetWindowPlacement(hwnd, &wp);
+
+        switch(wp.showCmd)
+        {
+            case SW_MAXIMIZE: ShowWindow(hwnd, SW_RESTORE); break;
+            case SW_RESTORE:
+            case SW_NORMAL: ShowWindow(hwnd, SW_MAXIMIZE); break;
+            default: break;
+        }
     }
 	
 	void setTitle(const char * txt)
@@ -582,6 +601,31 @@ LRESULT Win32Window::callback(
             // get focus if we're not losing activation
 			if(active) SetFocus(hwnd);
             DefWindowProcA(hwnd, msg, wParam, lParam);
+        }
+        break;
+
+    case WM_DROPFILES:
+        {
+            auto hDrop = (HDROP) wParam;
+
+            POINT pt = {};
+            DragQueryPoint(hDrop, &pt);
+
+            // get number of files
+            std::vector<char>   buf;
+            auto nFiles = DragQueryFileA(hDrop, ~0u, 0, 0);
+            for(unsigned i = 0; i < nFiles; ++i)
+            {
+                auto fnLen = DragQueryFileA(hDrop, i, 0, 0);
+                if(!fnLen) continue;
+
+                buf.resize(fnLen+1);
+                if(!DragQueryFileA(hDrop, i, buf.data(), buf.size())) continue;
+
+                delegate.win_drop_file(buf.data(), pt.x, pt.y);
+            }
+
+            DragFinish(hDrop);
         }
         break;
 

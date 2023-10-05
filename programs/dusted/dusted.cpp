@@ -313,6 +313,18 @@ struct FileBrowser : dust::Panel
 
         filler.style.rule = dust::LayoutStyle::FILL;
         filler.setParent(scroll.getContent());
+
+#ifdef _WIN32
+        char rootPath[MAX_PATH+1];
+		const char * cwd = _fullpath(rootPath, root.path.c_str(), MAX_PATH);
+        auto * basename = strrchr(cwd, '\\');
+        if(basename) root.label = basename + 1;
+#else
+        char rootPath[PATH_MAX];
+        const char * cwd = realpath(root.path.c_str(), rootPath);
+        auto * basename = strrchr(cwd, '/');
+        if(basename) root.label = basename + 1;
+#endif
     }
 };
 
@@ -799,33 +811,28 @@ struct AppWindow : dust::Panel
 
     void setWindowTitle()
     {
-        if(!activeTab) { getWindow()->setTitle(""); return; }
+        if(!activeTab)
+        {
+            getWindow()->setTitle(browser.root.label.c_str());
+            return;
+        }
 
         const char * path = activeTab->content.path.c_str();
 #ifdef _WIN32
         char rootPath[MAX_PATH+1];
 		const char * cwd = _fullpath(rootPath, browser.root.path.c_str(), MAX_PATH);
-
-        // strip common prefix
-        while(*path && *cwd && *path == *cwd) { ++path; ++cwd; }
-
-        // if we stripped whole prefix, remove '\\'
-        // otherwise revert to absolute path
-        if(!*cwd && *path == '\\') ++path;
-        else path = activeTab->content.path.c_str();
 #else
         char rootPath[PATH_MAX];
         const char * cwd = realpath(browser.root.path.c_str(), rootPath);
-        
+#endif
         // strip common prefix
         while(*path && *cwd && *path == *cwd) { ++path; ++cwd; }
 
-        // if we stripped whole prefix, remove '/'
-        // otherwise revert to absolute path
-        if(!*cwd && *path == '/') ++path;
-        else path = activeTab->content.path.c_str();
-#endif
-        getWindow()->setTitle(path);
+        // if we couldn't strip the whole prefix, revert to full path
+        if(*cwd)
+            getWindow()->setTitle(activeTab->content.path.c_str());
+        else
+            getWindow()->setTitle((browser.root.label + path).c_str());
     }
 
     // create a new document in active panel
@@ -1069,6 +1076,8 @@ struct AppWindow : dust::Panel
         buildPanel.output.onClickError = [this](const char *path, int l, int c)
         {
             this->openDocument(path);
+            // FIXME: should check if we managed to open the file
+            // and close the dummy tab if not
             this->activeTab->content.editor.focus();
             // exposePoint() is funky if we haven't done layout
             // this happens if we have to open the document
@@ -1115,6 +1124,18 @@ struct AppWindow : dust::Panel
         panel0.noContent.background.onClick = [this](){ newDocument(panel0); };
         panel1.noContent.background.onClick = [this](){ newDocument(panel1); };
     }
+
+    void dropFile(const char * path, int x, int y)
+    {
+        openDocument(path);
+        auto & panel = panel0.contains(activeTab) ? panel0 : panel1;
+        auto & ol = panel.dragLink->getLayout();
+        if(x >= ol.windowOffsetX && x - ol.windowOffsetX < ol.w
+        && y >= ol.windowOffsetY && y - ol.windowOffsetY < ol.h)
+        {
+            panel.moveTabToPanel(panel.dragLink);
+        }
+    }
 };
 
 struct Dusted : dust::Application
@@ -1125,16 +1146,34 @@ struct Dusted : dust::Application
     {
         dust::Window * win = dust::createWindow(*this, 0, 16*72, 9*72);
         win->setMinSize(16*32, 9*32);
-        win->setTitle("");
         win->toggleMaximize();
 
         dust::Surface sIcon(32, 32);
         dust::RenderContext rcIcon(sIcon);
 
         testIcon.renderFit(rcIcon, sIcon.getSizeX(), sIcon.getSizeY());
+
+        // blur background
+        dust::Surface sIcon2(32, 32);
+        dust::RenderContext rcIcon2(sIcon2);
+        sIcon2.blur(sIcon, 2.f);
+        rcIcon2.fill<dust::blend::InnerShadow>(dust::paint::Color(0xffff4488));
+        rcIcon.copy<dust::blend::Under>(sIcon2);
+        sIcon2.blur(sIcon, 2.f);
+        rcIcon2.fill<dust::blend::InnerShadow>(dust::paint::Color(0xffdd8888));
+        rcIcon.copy<dust::blend::Under>(sIcon2);
+        
         win->setIcon(sIcon);
 
         appWin.setParent(win);
+        appWin.setWindowTitle();
+    }
+
+    bool win_can_dropfiles() { return true; }
+
+    void win_drop_file(const char * path, int x, int y)
+    {
+        appWin.dropFile(path, x, y);
     }
 
     bool win_closing()

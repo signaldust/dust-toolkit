@@ -526,50 +526,73 @@ struct PainterRenderTemplate
 
                 // if no active edges, go to next scanline
                 if(!~activeHead) continue;
-                lineHasEdges = true;
-
+                
                 //// WINDING CALC + EDGE UPDATES
                 unsigned *edgePtr = &activeHead;
                 int winding = 0;
                 bool inPoly = false;
-                while(~*edgePtr)
+
+                // skip coverage if all edges are past visible area
+                if(traces[*edgePtr].x < clipX1)
                 {
-                    unsigned edge = *edgePtr;
-
-                    // break out if past visible area
-                    if(traces[edge].x >= clipX1) break;
-
-                    winding += traces[edge].wdir();
-                    bool inPolyAfter = 0 != (winding & fill);
-
-                    if(inPoly != inPolyAfter)
+                    lineHasEdges = true;
+                    
+                    // deal with the edges before visible area first
+                    // we can do the coverage for these in bulk
+                    while(~*edgePtr)
                     {
-                        inPoly = inPolyAfter;
-
-                        // clip on the left edge
-                        int x = traces[edge].x + extraMask;
-                        if(x < clipX0) x = clipX0;
-
-                        int xPix0 = ((x-clipX0) >> XPoint::spBits);
-                        int xPix1 = xPix0+1;
-
-                        int xOff1 = (x & (XPoint::spCount-1)) >> extraBits;
-                        int xOff0 = sampleCount - xOff1;
-
-                        if(inPoly)
-                        {
-                            coverage[xPix0] += xOff0;
-                            coverage[xPix1] += xOff1;
-                        }
-                        else
-                        {
-                            coverage[xPix0] -= xOff0;
-                            coverage[xPix1] -= xOff1;
-                        }
+                        unsigned edge = *edgePtr;
+                        if(traces[edge].x >= clipX0) break;
+                        
+                        winding += traces[edge].wdir();
+                        inPoly = 0 != (winding & fill);
+                        edgePtr = &traces[edge].next;
                     }
-
-                    edgePtr = &traces[edge].next;
+    
+                    // add coverage in bulk
+                    if(inPoly) coverage[0] += sampleCount;
+    
+                    // process edges in visible area
+                    while(~*edgePtr)
+                    {
+                        unsigned edge = *edgePtr;
+    
+                        // break out if past visible area
+                        if(traces[edge].x >= clipX1) break;
+    
+                        winding += traces[edge].wdir();
+                        bool inPolyAfter = 0 != (winding & fill);
+    
+                        if(inPoly != inPolyAfter)
+                        {
+                            inPoly = inPolyAfter;
+    
+                            // clip on the left edge
+                            int x = traces[edge].x + extraMask;
+                            if(x < clipX0) x = clipX0;
+    
+                            int xPix0 = ((x-clipX0) >> XPoint::spBits);
+                            int xPix1 = xPix0+1;
+    
+                            int xOff1 = (x & (XPoint::spCount-1)) >> extraBits;
+                            int xOff0 = sampleCount - xOff1;
+    
+                            if(inPoly)
+                            {
+                                coverage[xPix0] += xOff0;
+                                coverage[xPix1] += xOff1;
+                            }
+                            else
+                            {
+                                coverage[xPix0] -= xOff0;
+                                coverage[xPix1] -= xOff1;
+                            }
+                        }
+    
+                        edgePtr = &traces[edge].next;
+                    }
                 }
+                
                 // process any edges past visible area
                 while(~*edgePtr)
                 {
@@ -591,7 +614,8 @@ struct PainterRenderTemplate
             uint8_t * alphaScan = verticalScan
                 ? (maskOut + clipRect.y0 * int(maskPitch) + y)
                 : (maskOut + clipRect.x0 + y * int(maskPitch));
-            if(true)
+                
+            if(lineHasEdges)
             {
                 for(int x = 0; x < xLimit; ++x)
                 {

@@ -172,6 +172,16 @@ namespace dust
                 return color::AoverB(src, dst);
             }
         };
+        
+        // dst over src, reverse blending
+        struct Under
+        {
+            // standard per-multiplied over
+            static ARGB blend(ARGB dst, ARGB src)
+            {
+                return color::AoverB(dst, src);
+            }
+        };
 
         // multiply src and dst
         struct Multiply
@@ -228,6 +238,15 @@ namespace dust
             static ARGB blend(ARGB dst, ARGB src)
             {
                 return color::AoverB(src & (0xff<<24), dst);
+            }
+        };
+        
+        // this does "under" blending with src alpha and black color
+        struct ShadowUnder
+        {
+            static ARGB blend(ARGB dst, ARGB src)
+            {
+                return color::AoverB(dst, src & (0xff<<24));
             }
         };
 

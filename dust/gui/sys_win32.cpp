@@ -611,20 +611,29 @@ LRESULT Win32Window::callback(
             POINT pt = {};
             DragQueryPoint(hDrop, &pt);
 
-            // get number of files
-            std::vector<char>   buf;
-            auto nFiles = DragQueryFileA(hDrop, ~0u, 0, 0);
-            for(unsigned i = 0; i < nFiles; ++i)
+            // This is a huge hack, implement proper IDropTarget
+            MouseEvent ev(MouseEvent::tDragFiles, x, y, 0, 0, keymods);
+            sendMouseEvent(ev);
+            auto * panel = getMouseTrack();
+            if(panel && !panel->ev_accept_files()) panel = 0;
+            sendMouseExit();
+
+            if(panel)
             {
-                auto fnLen = DragQueryFileA(hDrop, i, 0, 0);
-                if(!fnLen) continue;
-
-                buf.resize(fnLen+1);
-                if(!DragQueryFileA(hDrop, i, buf.data(), buf.size())) continue;
-
-                delegate.win_drop_file(buf.data(), pt.x, pt.y);
+                std::vector<char>   buf;
+                // get number of files
+                auto nFiles = DragQueryFileA(hDrop, ~0u, 0, 0);
+                for(unsigned i = 0; i < nFiles; ++i)
+                {
+                    auto fnLen = DragQueryFileA(hDrop, i, 0, 0);
+                    if(!fnLen) continue;
+    
+                    buf.resize(fnLen+1);
+                    if(!DragQueryFileA(hDrop, i, buf.data(), buf.size())) continue;
+    
+                    delegate.win_drop_file(panel, buf.data());
+                }
             }
-
             DragFinish(hDrop);
         }
         break;

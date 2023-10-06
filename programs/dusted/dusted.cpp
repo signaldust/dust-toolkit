@@ -475,8 +475,52 @@ struct NoDocument : dust::Panel
     }
 };
 
-typedef dust::TabPanel<Document, NoDocument>     DocumentPanel;
-typedef DocumentPanel::Tab                      DocumentTab;
+typedef dust::TabPanel<Document, NoDocument> DocumentPanel;
+struct DocumentPanelEx : DocumentPanel
+{
+    DocumentPanelEx()
+    {
+        hoverFiles.setVisible(false);
+        hoverFiles.setParent(this);
+    }
+    
+    bool ev_mouse(const MouseEvent & ev)
+    {
+        if(ev.type == dust::MouseEvent::tDragFiles)
+        {
+            if(!hoverFiles.getVisible())
+                hoverFiles.setVisible(true);
+            
+            return true;
+        }
+
+        return DocumentPanel::ev_mouse(ev);
+    }
+
+    void ev_mouse_exit()
+    {
+        if(hoverFiles.getVisible())
+            hoverFiles.setVisible(false);
+        DocumentPanel::ev_mouse_exit();
+    }
+
+    bool ev_accept_files() { return true; }
+  
+private:
+    struct Overlay : dust::Panel
+    {
+        Overlay() { style.rule = dust::LayoutStyle::OVERLAY; }
+        void render(dust::RenderContext & rc)
+        {
+            auto pt = getWindow()->pt();
+            Path p;
+            p.rect(3*pt, 3*pt, layout.w-3*pt, layout.h-3*pt, 3*pt);
+            rc.strokePath(p, 1.5f*pt, dust::paint::Color(dust::theme.actColor));
+        }
+    } hoverFiles;
+};
+
+typedef DocumentPanel::Tab  DocumentTab;
 
 struct FindPanel : dust::Grid<2,2>
 {
@@ -729,8 +773,7 @@ struct AppWindow : dust::Panel
     FindPanel       findPanel;
     BuildPanel      buildPanel;
     
-    DocumentPanel   panel0, panel1;
-
+    DocumentPanelEx panel0, panel1;
     DocumentTab     *activeTab = 0;
 
     void doSearch(bool replace, bool backwards)
@@ -936,7 +979,7 @@ struct AppWindow : dust::Panel
         setWindowTitle();
     }
 
-    void openDocument(const std::string & path)
+    void openDocument(const std::string & path, DocumentPanel * inPanel = 0)
     {
 #ifdef _WIN32
 		char absPath[MAX_PATH+1];
@@ -947,11 +990,19 @@ struct AppWindow : dust::Panel
 #endif
     
         // try to find an existing document with the same path
-        if(selectExisting(panel0, absPath)
-        || selectExisting(panel1, absPath)) return;
+        if(selectExisting(panel0, absPath))
+        {
+            if(inPanel && &panel0 != inPanel) panel0.moveTabToPanel(inPanel);
+            return;
+        }
+        if(selectExisting(panel1, absPath))
+        {
+            if(inPanel && &panel1 != inPanel) panel1.moveTabToPanel(inPanel);
+            return;
+        }
 
-        // if we didn't find one, open a new one in active panel
-        newDocument();
+        // if we didn't find one, open a new one in desired or active panel
+        if(inPanel) newDocument(*inPanel); else newDocument();
         activeTab->content.path = absPath;
         activeTab->content.selectSyntax();
         activeTab->content.editor.loadFile(absPath);
@@ -1125,16 +1176,12 @@ struct AppWindow : dust::Panel
         panel1.noContent.background.onClick = [this](){ newDocument(panel1); };
     }
 
-    void dropFile(const char * path, int x, int y)
+    void dropFile(Panel * panel, const char * path)
     {
+        if(panel == &panel0) { openDocument(path, &panel0); return; }
+        if(panel == &panel1) { openDocument(path, &panel1); return; }
+        // anything else, open in active panel
         openDocument(path);
-        auto & panel = panel0.contains(activeTab) ? panel0 : panel1;
-        auto & ol = panel.dragLink->getLayout();
-        if(x >= ol.windowOffsetX && x - ol.windowOffsetX < ol.w
-        && y >= ol.windowOffsetY && y - ol.windowOffsetY < ol.h)
-        {
-            panel.moveTabToPanel(panel.dragLink);
-        }
     }
 };
 
@@ -1171,9 +1218,9 @@ struct Dusted : dust::Application
 
     bool win_can_dropfiles() { return true; }
 
-    void win_drop_file(const char * path, int x, int y)
+    void win_drop_file(Panel * panel, const char * path)
     {
-        appWin.dropFile(path, x, y);
+        appWin.dropFile(panel, path);
     }
 
     bool win_closing()

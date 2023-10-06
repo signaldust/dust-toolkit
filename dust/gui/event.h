@@ -35,12 +35,14 @@ namespace dust
     {
         enum Type {
 
-            tMove,  // FIXME: generate tDrag when dragging?
+            tMove,
 
             tDown,
             tUp,
 
             tScroll,
+            
+            tDragFiles,
 
             tInvalid
         };
@@ -114,6 +116,9 @@ namespace dust
         // notification about focus change
         // gained is true if focus gained, false if lost
         virtual void ev_focus(bool gained) {}
+
+        // return true if we can drop files
+        virtual bool ev_accept_files() { return false; }
 
     };
 

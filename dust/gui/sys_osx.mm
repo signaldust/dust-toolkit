@@ -353,6 +353,8 @@ struct CocoaWindow : Window
     }
 
 #if !DUST_USE_OPENGL
+    // this is here more for "perhaps try to make it usable"
+    // than as a serious alternative to OpenGL
     void platformBlit(dust::Surface & s)
     {
         auto scale = [[sysView window] backingScaleFactor];
@@ -618,6 +620,9 @@ struct CocoaWindow : Window
             }
         }];
     }
+
+    // protected in window, expose to our NSView
+    Panel * getMouseTrack() { return Window::getMouseTrack(); }
 };
 
 Window * dust::createWindow(WindowDelegate & delegate,
@@ -646,32 +651,69 @@ Window * dust::createWindow(WindowDelegate & delegate,
 
 - (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender
 {
-    return [[[sender draggingPasteboard] types]
-            containsObject:NSFilenamesPboardType]
-        ? NSDragOperationGeneric : NSDragOperationNone;
+    if(![[[sender draggingPasteboard] types]
+            containsObject:NSFilenamesPboardType])
+        return NSDragOperationNone;
+
+    auto pt = [self convertPoint:[sender draggingLocation] fromView:nil];
+    auto ev = MouseEvent(MouseEvent::tDragFiles,
+            int(pt.x*sysFrame->scaleFactor / 96),
+            int(pt.y*sysFrame->scaleFactor / 96),
+            0, 0, sysFrame->keymods);
+    
+    sysFrame->sendMouseEvent(ev);
+    
+    auto * panel = sysFrame->getMouseTrack();
+    bool canDrop = panel && panel->ev_accept_files();
+
+    return canDrop ? NSDragOperationGeneric : NSDragOperationNone;
 }
 
 - (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender
 {
-    return NSDragOperationGeneric;
+    auto pt = [self convertPoint:[sender draggingLocation] fromView:nil];
+    auto ev = MouseEvent(MouseEvent::tDragFiles,
+            int(pt.x*sysFrame->scaleFactor / 96),
+            int(pt.y*sysFrame->scaleFactor / 96),
+            0, 0, sysFrame->keymods);
+    
+    sysFrame->sendMouseEvent(ev);
+
+    auto * panel = sysFrame->getMouseTrack();
+    bool canDrop = panel && panel->ev_accept_files();
+
+    return canDrop ? NSDragOperationGeneric : NSDragOperationNone;
 }
 
-- (void)draggingExited:(id <NSDraggingInfo>)sender { }
+- (void)draggingExited:(id <NSDraggingInfo>)sender
+{
+    sysFrame->sendMouseExit();
+}
 
 -(BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender { return YES; }
 
 -(BOOL)performDragOperation:(id <NSDraggingInfo>)sender
 {
-    auto pt = [sender draggingLocation];
+    auto pt = [self convertPoint:[sender draggingLocation] fromView:nil];
+    auto ev = MouseEvent(MouseEvent::tDragFiles,
+            int(pt.x*sysFrame->scaleFactor / 96),
+            int(pt.y*sysFrame->scaleFactor / 96),
+            0, 0, sysFrame->keymods);
+    
+    sysFrame->sendMouseEvent(ev);
+
+    auto * panel = sysFrame->getMouseTrack();
+    bool canDrop = panel && panel->ev_accept_files();
+    if(!canDrop) return NO;
+    
     NSArray *files = [[sender draggingPasteboard]
                         propertyListForType:NSFilenamesPboardType];
     for(int i = 0; i < [files count]; ++i)
     {
-        sysFrame->delegate.win_drop_file(
-            [[files objectAtIndex:i] UTF8String],
-            int(pt.x*sysFrame->scaleFactor / 96),
-            int(pt.y*sysFrame->scaleFactor / 96));
+        sysFrame->delegate.win_drop_file(panel,
+            [[files objectAtIndex:i] UTF8String]);
     }
+    sysFrame->sendMouseExit();
     
     return YES;
 }

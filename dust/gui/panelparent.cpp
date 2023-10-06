@@ -198,6 +198,10 @@ namespace dust
                 contentSize = (std::max)(contentSize, reserveSize);
                 break;
 
+            case LayoutStyle::OVERLAY:
+                contentSize = (std::max)(contentSize, c->layout.w);
+                break;
+                
             case LayoutStyle::MANUAL: break;    // don't give a warning
 
             default:
@@ -255,7 +259,12 @@ namespace dust
                 reserveSize += c->layout.h;
                 contentSize = (std::max)(contentSize, reserveSize);
                 break;
-
+                
+            case LayoutStyle::OVERLAY:
+                contentSize = (std::max)(contentSize, c->layout.h);
+                break;
+                
+            case LayoutStyle::MANUAL:
             default:
                 break;
             }
@@ -298,6 +307,12 @@ namespace dust
                 box1 -= c->layout.contentSizeX;
                 c->layout.x = box1;
                 c->layout.w = c->layout.contentSizeX;
+                break;
+                
+            case LayoutStyle::OVERLAY:
+                c->layout.x = layout.contentPadding.west;
+                c->layout.w = layout.contentSizeX
+                    - layout.contentPadding.east - c->layout.x;
                 break;
 
             default:
@@ -344,6 +359,12 @@ namespace dust
                 box1 -= c->layout.contentSizeY;
                 c->layout.y = box1;
                 c->layout.h = c->layout.contentSizeY;
+                break;
+                
+            case LayoutStyle::OVERLAY:
+                c->layout.y = layout.contentPadding.north;
+                c->layout.h = layout.contentSizeY
+                    - layout.contentPadding.south - c->layout.y;
                 break;
 
             default:

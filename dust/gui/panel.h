@@ -49,6 +49,9 @@ namespace dust
             // flow for text and other objects (FIXME: not implemented ..)
             FLOW,
 
+            // fill whole parent - useful for overlays
+            OVERLAY,
+
             // explicit manual layout (eg. for MDI windows)
             MANUAL,
 
@@ -357,7 +360,7 @@ namespace dust
         // hidden (but enabled) controls still receive layout
         // but events and redraws ignore the control and it's children
         void setVisible(bool b)
-        { if(visible == b) return; visible = b; redraw(); }
+        { if(visible == b) return; visible = true; redraw(); visible = b;  }
 
         bool getVisible() { return visible; }
 

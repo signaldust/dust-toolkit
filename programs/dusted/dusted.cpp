@@ -1206,7 +1206,7 @@ struct Dusted : dust::Application
         int iconsize = 32;
 #endif
 #ifdef __APPLE__
-        int iconsize = 64;
+        int iconsize = 128; // macos scales fine, so can make this large
 #endif
         dust::Surface sIcon(iconsize, iconsize);
         dust::RenderContext rcIcon(sIcon);
@@ -1218,10 +1218,10 @@ struct Dusted : dust::Application
         // blur background
         dust::Surface sIcon2(iconsize, iconsize);
         dust::RenderContext rcIcon2(sIcon2);
-        sIcon2.blur(sIcon, 2.f);
+        sIcon2.blur(sIcon, iconsize/32.f);
         rcIcon2.fill<dust::blend::InnerShadow>(dust::paint::Color(0xffff4488));
         rcIcon.copy<dust::blend::Under>(sIcon2);
-        sIcon2.blur(sIcon, 2.f);
+        sIcon2.blur(sIcon, iconsize/32.f);
         rcIcon2.fill<dust::blend::InnerShadow>(dust::paint::Color(0xffdd8888));
         rcIcon.copy<dust::blend::Under>(sIcon2);
         

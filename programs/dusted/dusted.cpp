@@ -861,6 +861,11 @@ struct AppWindow : dust::Panel
         }
 
         const char * path = activeTab->content.path.c_str();
+        if(!*path)
+        {
+            getWindow()->setTitle(browser.root.label.c_str());
+            return;
+        }
 #ifdef _WIN32
         char rootPath[MAX_PATH+1];
 		const char * cwd = _fullpath(rootPath, browser.root.path.c_str(), MAX_PATH);

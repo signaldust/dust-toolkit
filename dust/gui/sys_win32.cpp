@@ -9,6 +9,7 @@
     "publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 #pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "ole32.lib")
     
 #include <windows.h>
 #include <commctrl.h>
@@ -99,6 +100,135 @@ struct Win32WheelHook
     }
 
 } wheelHook;
+
+struct WinDropHandler
+{
+    virtual bool drag_move(int x, int y) = 0;
+    virtual void drag_exit() = 0;
+
+    virtual dust::Panel * drag_get_panel(int x, int y) = 0;
+    virtual void drag_drop(dust::Panel * panel, const char * path) = 0;
+    
+protected:
+    ~WinDropHandler() {}
+};
+
+struct WinDropTarget : public IDropTarget
+{
+    WinDropTarget(WinDropHandler & handler) : handler(handler) {}
+    virtual ~WinDropTarget() { }
+    
+protected:
+    // IUnknown methods
+    STDMETHOD(QueryInterface)(REFIID iid, void FAR* FAR* p)
+    {
+       if (iid == IID_IUnknown || iid == IID_IDropTarget)
+       {
+           *p = this; AddRef(); return NOERROR;
+       }
+       *p = NULL;
+       return ResultFromScode(E_NOINTERFACE);
+    }
+    STDMETHOD_(ULONG, AddRef)()
+    {
+        return ++refCount;
+    }
+    STDMETHOD_(ULONG, Release)()
+    {
+        if(!--refCount) { delete this; return 0; } else return refCount;
+    }
+    
+    // IDropTarget methods
+    STDMETHOD(DragEnter)(LPDATAOBJECT pDataObj, DWORD grfKeyState,
+                                         POINTL pt, LPDWORD pdwEffect)
+    {
+        FORMATETC fmt = {};
+        fmt.cfFormat = CF_HDROP;
+        fmt.ptd      = NULL;
+        fmt.dwAspect = DVASPECT_CONTENT;
+        fmt.lindex   = -1;
+        fmt.tymed    = TYMED_HGLOBAL;
+    
+        // check if we can do CF_HDROP since we don't support other stuff
+        acceptFormat = (pDataObj->QueryGetData(&fmt) == NOERROR);
+        
+        if(acceptFormat)
+        {
+            *pdwEffect = handler.drag_move(pt.x, pt.y)
+                ? DROPEFFECT_MOVE : DROPEFFECT_NONE;
+        }
+
+        return NOERROR;
+    }
+    STDMETHOD(DragOver)(DWORD grfKeyState, POINTL pt, LPDWORD pdwEffect)
+    {
+        if(acceptFormat)
+        {
+            *pdwEffect = handler.drag_move(pt.x, pt.y)
+                ? DROPEFFECT_MOVE : DROPEFFECT_NONE;
+        }
+        return NOERROR;
+    }
+    STDMETHOD(DragLeave)()
+    {
+        acceptFormat = false;
+        handler.drag_exit();
+        return NOERROR;
+    }
+    STDMETHOD(Drop)(LPDATAOBJECT pDataObj, DWORD grfKeyState,
+                    POINTL pt, LPDWORD pdwEffect)
+    {
+        auto * panel = handler.drag_get_panel(pt.x, pt.y);
+        if(!panel) { *pdwEffect = DROPEFFECT_NONE; return NOERROR; }
+        
+        FORMATETC fmt = {};
+        fmt.cfFormat = CF_HDROP;
+        fmt.ptd = NULL;
+        fmt.dwAspect = DVASPECT_CONTENT;
+        fmt.lindex = -1;
+        fmt.tymed = TYMED_HGLOBAL;
+
+        // get the CF_HDROP data from drag source
+        STGMEDIUM medium;
+        HRESULT hr = pDataObj->GetData(&fmt, &medium);
+        if(!FAILED(hr))
+        {
+            // grab a pointer to the data
+            HDROP hDrop = (HDROP)GlobalLock(medium.hGlobal);
+            
+            if(panel)
+            {
+                std::vector<char>   buf;
+                // get number of files
+                auto nFiles = DragQueryFileA(hDrop, ~0u, 0, 0);
+                for(unsigned i = 0; i < nFiles; ++i)
+                {
+                    auto fnLen = DragQueryFileA(hDrop, i, 0, 0);
+                    if(!fnLen) continue;
+    
+                    buf.resize(fnLen+1);
+                    if(!DragQueryFileA(hDrop, i, buf.data(), buf.size())) continue;
+    
+                    handler.drag_drop(panel, buf.data());
+                }
+            }
+            DragFinish(hDrop);
+            GlobalUnlock(medium.hGlobal);
+            
+            // ordinarily ReleaseStgMedium(&medium), but DragFinish does that
+        }
+        else
+        {
+            *pdwEffect = DROPEFFECT_NONE;
+            return hr;
+        }
+        return NOERROR;
+    }
+private:
+    WinDropHandler & handler;
+    unsigned refCount = 1;
+    bool acceptFormat = false;
+};
 
 struct Win32Callback
 {
@@ -208,7 +338,7 @@ typedef BOOL (APIENTRY * PFNGLWGLSWAPINTERVALEXTPROC) (GLint interval);
 
 using namespace dust;
 
-struct Win32Window : Window, Win32Callback
+struct Win32Window : Window, Win32Callback, WinDropHandler
 {
     WindowDelegate & delegate;
 
@@ -218,6 +348,8 @@ struct Win32Window : Window, Win32Callback
 #if DUST_USE_OPENGL
     HGLRC    hglrc;
 #endif
+
+    LPDROPTARGET iDropTarget = 0;
     
     // size info as set by client
     unsigned    minSizeX, minSizeY;
@@ -236,8 +368,6 @@ struct Win32Window : Window, Win32Callback
         if(parent) style |= WS_CHILD | WS_VISIBLE;
         else style |= WS_OVERLAPPEDWINDOW;
 
-        if(delegate.win_can_dropfiles()) ex_style |= WS_EX_ACCEPTFILES;
-
         windowClass.registerClass();
         hwnd = CreateWindowExA(ex_style,
             (LPSTR)windowClass.winClassAtom,
@@ -250,6 +380,14 @@ struct Win32Window : Window, Win32Callback
         SetWindowLongPtrA(hwnd, GWLP_USERDATA, 
 			(LONG_PTR) (Win32Callback*) this);
         delegate.win_created();
+
+        if(delegate.win_can_dropfiles())
+        {
+            OleInitialize(NULL);
+            iDropTarget = new WinDropTarget(*this);
+            CoLockObjectExternal(iDropTarget, true, true);
+            RegisterDragDrop(hwnd, iDropTarget);
+        }
 
         // this will fix title-bar
 		if(!parent) resize(w, h);
@@ -290,6 +428,14 @@ struct Win32Window : Window, Win32Callback
     ~Win32Window()
     {
         if(activeMenu) { delete activeMenu; activeMenu = 0; }
+
+        if(iDropTarget)
+        {
+            RevokeDragDrop(hwnd);
+            iDropTarget->Release();
+            CoLockObjectExternal(iDropTarget, false, true);
+            OleUninitialize();
+        }
         
         removeAllChildren();
         delegate.win_closed();
@@ -310,6 +456,33 @@ struct Win32Window : Window, Win32Callback
     }
 
     LRESULT callback(HWND, UINT, WPARAM, LPARAM);
+
+    bool drag_move(int x, int y)
+    {
+        POINT p;
+        p.x = x;
+        p.y = y;
+        ScreenToClient(hwnd, &p);
+        MouseEvent ev(MouseEvent::tDragFiles, p.x, p.y, 0, 0, getAsyncMods());
+        sendMouseEvent(ev);
+        auto * panel = getMouseTrack();
+        return panel && panel->ev_accept_files();
+    }
+    void drag_exit() { sendMouseExit(); }
+    dust::Panel * drag_get_panel(int x, int y)
+    {
+        MouseEvent ev(MouseEvent::tDragFiles, x, y, 0, 0, getAsyncMods());
+        sendMouseEvent(ev);
+        auto * panel = getMouseTrack();
+        sendMouseExit();
+        
+        if(!panel || !panel->ev_accept_files()) return 0;
+        return panel;        
+    }
+    void drag_drop(dust::Panel * panel, const char * path)
+    {
+        delegate.win_drop_file(panel, path);
+    }
 	
 	void closeWindow() { DestroyWindow(hwnd); }
 	void * getSystemHandle() { return (void*) hwnd; }
@@ -601,40 +774,6 @@ LRESULT Win32Window::callback(
             // get focus if we're not losing activation
 			if(active) SetFocus(hwnd);
             DefWindowProcA(hwnd, msg, wParam, lParam);
-        }
-        break;
-
-    case WM_DROPFILES:
-        {
-            auto hDrop = (HDROP) wParam;
-
-            POINT pt = {};
-            DragQueryPoint(hDrop, &pt);
-
-            // This is a huge hack, implement proper IDropTarget
-            MouseEvent ev(MouseEvent::tDragFiles, x, y, 0, 0, keymods);
-            sendMouseEvent(ev);
-            auto * panel = getMouseTrack();
-            if(panel && !panel->ev_accept_files()) panel = 0;
-            sendMouseExit();
-
-            if(panel)
-            {
-                std::vector<char>   buf;
-                // get number of files
-                auto nFiles = DragQueryFileA(hDrop, ~0u, 0, 0);
-                for(unsigned i = 0; i < nFiles; ++i)
-                {
-                    auto fnLen = DragQueryFileA(hDrop, i, 0, 0);
-                    if(!fnLen) continue;
-    
-                    buf.resize(fnLen+1);
-                    if(!DragQueryFileA(hDrop, i, buf.data(), buf.size())) continue;
-    
-                    delegate.win_drop_file(panel, buf.data());
-                }
-            }
-            DragFinish(hDrop);
         }
         break;
 

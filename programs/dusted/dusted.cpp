@@ -831,6 +831,8 @@ struct AppWindow : dust::Panel
         
         // close this document if it's inside panel1
         if(panel1.contains(tab)) { panel1.closeTab(tab); }
+
+        if(tab == activeTab) activeTab = 0;
     }
 
     void closeTab(DocumentTab * tab)
@@ -861,6 +863,11 @@ struct AppWindow : dust::Panel
         }
 
         const char * path = activeTab->content.path.c_str();
+        if(!*path)
+        {
+            getWindow()->setTitle(browser.root.label.c_str());
+            return;
+        }
 #ifdef _WIN32
         char rootPath[MAX_PATH+1];
 		const char * cwd = _fullpath(rootPath, browser.root.path.c_str(), MAX_PATH);
@@ -1063,7 +1070,7 @@ struct AppWindow : dust::Panel
         if(mods == (dust::KEYMOD_CMD|dust::KEYMOD_SHIFT))
         switch(vk)
         {
-            case dust::SCANCODE_B: buildPanel.doCommand(); break;
+            case dust::SCANCODE_B: buildPanel.commandBox.focus(); break;
             case dust::SCANCODE_SLASH:
             {
                 auto & panel = (panel0.contains(activeTab)) ? panel0 : panel1;

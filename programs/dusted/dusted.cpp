@@ -1070,7 +1070,7 @@ struct AppWindow : dust::Panel
         if(mods == (dust::KEYMOD_CMD|dust::KEYMOD_SHIFT))
         switch(vk)
         {
-            case dust::SCANCODE_B: buildPanel.doCommand(); break;
+            case dust::SCANCODE_B: buildPanel.commandBox.focus(); break;
             case dust::SCANCODE_SLASH:
             {
                 auto & panel = (panel0.contains(activeTab)) ? panel0 : panel1;

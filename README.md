@@ -32,7 +32,7 @@ my testing is somewhat sporadic), but development focus (especially performance)
 The following license applies to the toolkit itself:
 ```
 /*****************************************************************************\
-* Signaldust Toolkit (c) Copyright pihlaja@signaldust.com 2014-2022          *
+* Signaldust Toolkit (c) Copyright pihlaja@signaldust.com 2014-2023          *
 *----------------------------------------------------------------------------*
 * You can use and/or redistribute this for whatever purpose, free of charge, *
 * provided that the above copyright notice and this permission notice appear *

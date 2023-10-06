@@ -475,7 +475,7 @@ namespace dust
     template <typename T>
     struct SharedSingleton
     {
-        template <typename T> friend struct SharedRef;
+        template <typename> friend struct SharedRef;
 
         // if "eager" is true, then this will internally hold one reference
         // in this case it's just a thread-safe global
@@ -495,7 +495,7 @@ namespace dust
             // in the first case (1) we need to create an object
             // in the second case (more), we need to check the object
             if(1 == __atomic_add_fetch(
-                (volatile LONG*)&refs, 1, __ATOMIC_SEQ_CST))
+                (volatile unsigned*)&refs, 1, __ATOMIC_SEQ_CST))
             {
                 // there might be a previous object being destroyed
                 // so spin on the pointer until it's back to zero
@@ -519,7 +519,7 @@ namespace dust
             // in the first case (0) we need to destroy the object
             // in the second case (1+) we don't need to do anything
             if(0 == __atomic_sub_fetch(
-                (volatile LONG*)&refs, 1, __ATOMIC_SEQ_CST))
+                (volatile unsigned*)&refs, 1, __ATOMIC_SEQ_CST))
             {
                 // this is just the trivial thing, since
                 // addRef() guards against the races

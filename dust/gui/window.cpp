@@ -35,6 +35,11 @@ namespace dust
 
     void Window::sendMouseEvent(const MouseEvent & ev)
     {
+        // we sometimes get mouseUp on Windows even if we didn't
+        // actually get a mousedown (eg. maximizing a window)
+        // drop such events so every widget doesn't need to care
+        if(ev.type == MouseEvent::tUp && !dragButton) return;
+        
         if(dragButton)
         {
             // send events only if we're dragging an actual control

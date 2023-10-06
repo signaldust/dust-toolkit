@@ -612,7 +612,8 @@ LRESULT Win32Window::callback(
             DragQueryPoint(hDrop, &pt);
 
             // This is a huge hack, implement proper IDropTarget
-            MouseEvent ev(MouseEvent::tDragFiles, x, y, 0, 0, keymods);
+            MouseEvent ev(MouseEvent::tDragFiles,
+                pt.x, pt.y, 0, 0, getAsyncMods());
             sendMouseEvent(ev);
             auto * panel = getMouseTrack();
             if(panel && !panel->ev_accept_files()) panel = 0;

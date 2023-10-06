@@ -529,7 +529,7 @@ namespace dust
             undoMin = 0;
         }
 
-        ~PieceTable() { reset(); }
+        ~PieceTable() { reset(); delete head; delete tail; }
         void reset() { clearAll(); }
 
         // insert elements at position or end-of-sequence

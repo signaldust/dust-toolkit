@@ -831,6 +831,8 @@ struct AppWindow : dust::Panel
         
         // close this document if it's inside panel1
         if(panel1.contains(tab)) { panel1.closeTab(tab); }
+
+        if(tab == activeTab) activeTab = 0;
     }
 
     void closeTab(DocumentTab * tab)

@@ -275,6 +275,12 @@ struct CocoaWindow : Window
             [window makeKeyAndOrderFront:nil];
         }
 
+        if(delegate.win_can_dropfiles())
+        {
+            auto types = [NSArray arrayWithObjects: NSFilenamesPboardType, nil];
+            [sysView registerForDraggedTypes:types];
+        }
+
         // put it on autorelease pool, so it gets released
         // this still gives AU plugin host chance to use it
         [sysView autorelease];
@@ -637,6 +643,41 @@ Window * dust::createWindow(WindowDelegate & delegate,
     if(sysFrame->activeMenu)
         sysFrame->activeMenu->onSelect((unsigned)[sender tag]);
 }
+
+- (NSDragOperation)draggingEntered:(id <NSDraggingInfo>)sender
+{
+    return [[[sender draggingPasteboard] types]
+            containsObject:NSFilenamesPboardType]
+        ? NSDragOperationGeneric : NSDragOperationNone;
+}
+
+- (NSDragOperation)draggingUpdated:(id<NSDraggingInfo>)sender
+{
+    return NSDragOperationGeneric;
+}
+
+- (void)draggingExited:(id <NSDraggingInfo>)sender { }
+
+-(BOOL)prepareForDragOperation:(id <NSDraggingInfo>)sender { return YES; }
+
+-(BOOL)performDragOperation:(id <NSDraggingInfo>)sender
+{
+    auto pt = [sender draggingLocation];
+    NSArray *files = [[sender draggingPasteboard]
+                        propertyListForType:NSFilenamesPboardType];
+    for(int i = 0; i < [files count]; ++i)
+    {
+        sysFrame->delegate.win_drop_file(
+            [[files objectAtIndex:i] UTF8String],
+            int(pt.x*sysFrame->scaleFactor / 96),
+            int(pt.y*sysFrame->scaleFactor / 96));
+    }
+    
+    return YES;
+}
+
+- (void)concludeDragOperation:(id )sender { }
+
 
 -(void)viewWillMoveToWindow:(NSWindow*)window
 {

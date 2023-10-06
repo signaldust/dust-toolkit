@@ -1195,13 +1195,21 @@ struct Dusted : dust::Application
         win->setMinSize(16*32, 9*32);
         win->toggleMaximize();
 
-        dust::Surface sIcon(32, 32);
+#ifdef __WIN32
+        int iconsize = 32;
+#endif
+#ifdef __APPLE__
+        int iconsize = 64;
+#endif
+        dust::Surface sIcon(iconsize, iconsize);
         dust::RenderContext rcIcon(sIcon);
+        rcIcon.clear();
 
-        testIcon.renderFit(rcIcon, sIcon.getSizeX(), sIcon.getSizeY());
+        dust::RenderContext rcIconOff(rcIcon, iconsize/16, iconsize/16);
+        testIcon.renderFit(rcIconOff, iconsize-iconsize/8, iconsize-iconsize/8);
 
         // blur background
-        dust::Surface sIcon2(32, 32);
+        dust::Surface sIcon2(iconsize, iconsize);
         dust::RenderContext rcIcon2(sIcon2);
         sIcon2.blur(sIcon, 2.f);
         rcIcon2.fill<dust::blend::InnerShadow>(dust::paint::Color(0xffff4488));

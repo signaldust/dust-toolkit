@@ -352,6 +352,28 @@ struct CocoaWindow : Window
         layoutAndPaint(viewSizeX, viewSizeY);
     }
 
+    void setIcon(dust::Surface & s)
+    {
+        auto data = CGDataProviderCreateWithData(
+            0, s.getPixels(), s.getSizeX() * s.getPitch() * sizeof(ARGB), 0);
+            
+        CGDirectDisplayID displayID = CGMainDisplayID();  
+        CGColorSpaceRef cs = [[[sysView window] colorSpace] CGColorSpace];
+        
+        auto image = CGImageCreate(
+            s.getSizeX(), s.getSizeY(), 8, 32, s.getPitch() * 4,
+            cs, (kCGImageAlphaPremultipliedFirst | kCGBitmapByteOrder32Little),
+            data, 0, false, kCGRenderingIntentDefault);
+            
+        CGDataProviderRelease(data);
+
+        auto nsimage = [[NSImage alloc] initWithCGImage:image size:NSZeroSize];
+        [NSApp setApplicationIconImage:nsimage];
+        [nsimage autorelease];
+        
+        CGImageRelease (image);
+    }
+
 #if !DUST_USE_OPENGL
     // this is here more for "perhaps try to make it usable"
     // than as a serious alternative to OpenGL

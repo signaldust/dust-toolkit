@@ -2,6 +2,7 @@
 
 #include "dust/core/hash.h"
 #include "dust/render/rect.h"
+#include "dust/render/render_path.h"
 
 #include "font.h"
 
@@ -159,9 +160,51 @@ struct FontInstanceSTB : FontInstance
 
             // second parameter is tolerance, last two are invert and userdata
             // we always want our coordinate system with y going up, so invert
-            stbtt_Rasterize(&sbm, .25f, verts, nVerts,
+            if(0) stbtt_Rasterize(&sbm, .25f, verts, nVerts,
                 xSize, ySize, shiftX, shiftY,
                 r.x0-oversampleX, r.y0-oversampleY, 1, 0);
+            else
+            {
+                float offX = float(oversampleX) - r.x0 + shiftX;
+                float offY = float(oversampleY) - r.y0 + shiftY + oversampleY;
+                
+                dust::Path p;
+                for(int i = 0; i < nVerts; ++i)
+                {
+                    float x = offX + verts[i].x * xSize;
+                    float y = offY - verts[i].y * ySize;
+                    switch(verts[i].type)
+                    {
+                    case STBTT_vmove:
+                        p.move(x, y);
+                        break;
+                    case STBTT_vline:
+                        p.line(x, y);
+                        break;
+                    case STBTT_vcurve:
+                        {
+                            float cx = offX + verts[i].cx * xSize;
+                            float cy = offY - verts[i].cy * ySize;
+                            p.quad(cx, cy, x, y);
+                        }
+                        break;
+                    }
+                }
+
+                Rect rr(0,0,r.w(),r.h());
+                memset(g->bitmap, 0, r.w() * r.h());
+
+                // stroke the path, to force visibility
+                // makes fonts a bit fatter, but whatever
+                dust::Path p2;
+                p2.stroke(p, .25f);
+                // copy the original path on top of the stroke
+                p.process(p2);
+                
+                // then just draw as usual
+                dust::renderPathRef(p2, rr,
+                    dust::FILL_NONZERO, g->bitmap, r.w(), 4, false);
+            }
 
             // free the vertices
             STBTT_free(verts, 0);

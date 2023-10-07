@@ -13,6 +13,7 @@
     
 #include <windows.h>
 #include <commctrl.h>
+#include <shlobj.h>     // for browser select (using ugly old dialog, whatever)
 
 #if DUST_USE_OPENGL
 # include "GL/gl3w.h"
@@ -381,9 +382,10 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
 			(LONG_PTR) (Win32Callback*) this);
         delegate.win_created();
 
+        // we need this for drag&drop but it also gets us COM for openDir
+        OleInitialize(NULL);
         if(delegate.win_can_dropfiles())
         {
-            OleInitialize(NULL);
             iDropTarget = new WinDropTarget(*this);
             CoLockObjectExternal(iDropTarget, true, true);
             RegisterDragDrop(hwnd, iDropTarget);
@@ -434,8 +436,8 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
             RevokeDragDrop(hwnd);
             iDropTarget->Release();
             CoLockObjectExternal(iDropTarget, false, true);
-            OleUninitialize();
         }
+        OleUninitialize();
         
         removeAllChildren();
         delegate.win_closed();
@@ -579,7 +581,10 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
             cancel();
         }
 	}
-    
+
+    // Ideally would use IFileDialog on Vista+ .. but like
+    // we really want some COM helper wrappers or we'll go nuts
+    // so for the time being just use the legacy API
 	void openDialog(std::function<void(const char*)> open,
         bool multiple, const char * path)
 	{
@@ -638,9 +643,21 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
 	void openDirDialog(
         std::function<void(const char*)> open, const char * path)
     {
+        char    filename[_MAX_PATH] = {};
+
         // need to use SHBrowseForFolder
+        BROWSEINFOA bi = {};
+        bi.hwndOwner = hwnd;
+        bi.pszDisplayName = filename; // assumed to be MAX_PATH long :P
+        bi.lpszTitle = "";
+        bi.ulFlags = BIF_USENEWUI;
+
+        if(SHBrowseForFolderA(&bi))
+        {
+            dust::debugPrint("folder: %s", filename);
+        }        
     }
-    
+
     struct Win32Menu : Menu
     {
         std::function<void(int)>    onSelect;

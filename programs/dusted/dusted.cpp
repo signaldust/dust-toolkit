@@ -1202,7 +1202,7 @@ struct Dusted : dust::Application
         win->setMinSize(16*32, 9*32);
         win->toggleMaximize();
 
-#ifdef __WIN32
+#ifdef _WIN32
         int iconsize = 32;
 #endif
 #ifdef __APPLE__

@@ -254,7 +254,8 @@ namespace
         static bool wantFileType(const std::string & path)
         {
             const char * base = strrchr(path.c_str(), '/');
-            if(base && !strcmp(base, "/Makefile")) return true;
+            if(!base) base = strrchr(path.c_str(), '\\');  // windows
+            if(base && !strcmp(base+1, "Makefile")) return true;
             
             const char * ext = strrchr(path.c_str(), '.');
             if(!ext) return false;

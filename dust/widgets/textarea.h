@@ -72,18 +72,13 @@ namespace dust
         const char * wordSeparators()
         {
             const char * p = syntaxParser ? syntaxParser->wordSeparators() : 0;
-            if(!p) p = " \n\t\"\'()[]{}<>=&|^~!.,:;+-*/%$";
+            if(!p) p = " \n\t\"\'()[]{}<>=&|^~!?.,:;+-*/%$";
             return p;
         }
 
         TextArea()
         {
             style.rule = LayoutStyle::FILL;
-
-            //bgColor = 0xFF101316;
-            //fgColor = 0x00ffffff ^ bgColor;
-
-            //fgColor = color::lerp(fgColor, bgColor, 0x40);
 
             cursorColor = 0x8040FFFF;
 
@@ -662,12 +657,13 @@ namespace dust
                 // must be done before skips, but only for default text
                 if(TextAttrib::aDefault == activeAttrib)
                 {
-                    if(ch == '(' || ch == '[' || ch == '{')
+                    if(!syntaxParser) { /* don't color parens in plain text */ }
+                    else if(ch == '(' || ch == '[' || ch == '{')
                     {
                         charColor = parenColors
                             [(parenNesting++)%parenColors.size()];
                     }
-                    if(ch == ')' || ch == ']' || ch == '}')
+                    else if(ch == ')' || ch == ']' || ch == '}')
                     {
                         charColor = parenColors
                             [(--parenNesting)%parenColors.size()];
@@ -997,6 +993,7 @@ namespace dust
                     buffer.moveLineStartOrIndent(keepSel);
                     break;
 
+                case SCANCODE_KP_MINUS:
                 case SCANCODE_MINUS:
                 {
                     Font & font = getFont();
@@ -1006,6 +1003,7 @@ namespace dust
                     }
                 } break;
 
+                case SCANCODE_KP_PLUS:
                 case SCANCODE_EQUALS:
                 {
                     Font & font = getFont();

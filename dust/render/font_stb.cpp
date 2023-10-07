@@ -60,7 +60,7 @@ struct FontInstanceSTB : FontInstance
         // of small fonts while reducing render time of large ones
         // also cap the oversampling for very small sizes just in case
         int resX = 1 + (int)sizePx;
-        while(resX < 64 && oversampleX < 4)
+        while(resX < 96 && oversampleX < 3)
         {
             oversampleX <<= 1; resX <<= 1;
         }
@@ -113,8 +113,8 @@ struct FontInstanceSTB : FontInstance
         if(r.w() && r.h())
         {
             // add padding on both sides
-            r.x1 += 2*oversampleX;
-            r.y1 += 2*oversampleY;
+            r.x1 += 2*oversampleX + 2;
+            r.y1 += 2*oversampleY + 2;
         }
 
         // allocate
@@ -132,9 +132,9 @@ struct FontInstanceSTB : FontInstance
         stbtt_GetGlyphBox(&info, index, &xMin, &yMin, &xMax, &yMax);
         g->rsb = scale * (advanceW - lsb - (xMax - xMin));
 
-        // we offset by 1 full pixel
-        g->originX = r.x0;
-        g->originY = r.y0;
+        // we offset by 1 pixel to avoid clipping our stroke
+        g->originX = r.x0 - 1;
+        g->originY = r.y0 - 1;
 
         // check if glyph actually has a legit bitmap (eg. not space)
         if(r.w() && r.h())
@@ -155,8 +155,8 @@ struct FontInstanceSTB : FontInstance
 
             // prefiltering will shift the glyph by .5*(os-1)
             // so calculate inverse offsets
-            float shiftX = .5*(oversampleX - 1) / oversampleX;
-            float shiftY = .5*(oversampleY - 1) / oversampleY;
+            float shiftX = .5f*(oversampleX - 1) / oversampleX;
+            float shiftY = .5f*(oversampleY - 1) / oversampleY;
 
             // second parameter is tolerance, last two are invert and userdata
             // we always want our coordinate system with y going up, so invert
@@ -166,7 +166,7 @@ struct FontInstanceSTB : FontInstance
             else
             {
                 float offX = float(oversampleX) - r.x0 + shiftX;
-                float offY = float(oversampleY) - r.y0 + shiftY + oversampleY;
+                float offY = float(oversampleY) - r.y0 + shiftY;
                 
                 dust::Path p;
                 for(int i = 0; i < nVerts; ++i)
@@ -197,7 +197,9 @@ struct FontInstanceSTB : FontInstance
                 // stroke the path, to force visibility
                 // makes fonts a bit fatter, but whatever
                 dust::Path p2;
-                p2.stroke(p, .25f);
+                // about one third of a sub-pixel is reasonable
+                // because this still allows single-pixel gap to dark
+                p2.stroke(p, .333f);
                 // copy the original path on top of the stroke
                 p.process(p2);
                 

@@ -166,7 +166,7 @@ namespace
                     }
                     // color operator characters without state
                     // sanity check that we're looking at ascii
-                    if(ch < 0x80 && strchr("+-*/%^&~|<>:.,;=!", ch))
+                    if(ch < 0x80 && strchr("+-*/%^&~|<>:.,;=!?", ch))
                     {
                         if(inOper) break;
                         output(pos, TextAttrib::aOperator);

@@ -643,6 +643,55 @@ struct CocoaWindow : Window
         }];
     }
 
+    // NOTE: if we take open by ref or move, then we'll segfault
+    // in the completion handler when trying to call it..
+    //
+    // Not sure if I'm missing something or this is an Obj-C++ quirk
+    // but just do the extra copy and it works..
+    void openDialogInternal(std::function<void(const char*)> open,
+            bool multiple, bool canDir, const char * initPath)
+    {
+        NSOpenPanel * panel = [NSOpenPanel openPanel];
+        [panel setAllowsMultipleSelection:multiple];
+        [panel setCanChooseDirectories:canDir];
+        [panel setCanChooseFiles:!canDir];
+        
+        if(initPath)
+        {
+            NSString * str = [NSString stringWithUTF8String:initPath];
+            [panel setDirectoryURL:[NSURL fileURLWithPath:str]];
+        }
+
+        [panel beginSheetModalForWindow:[sysView window] completionHandler:
+        ^(NSInteger result)
+        {
+            if(result != NSFileHandlingPanelOKButton) return;
+            
+            auto * urls = [panel URLs];
+
+            for(int i = 0; i < [urls count]; ++i)
+            {
+                auto * url = [urls objectAtIndex:i];
+                // we don't touch non-files
+                if([url isFileURL] != YES) { continue; }
+
+                open([url fileSystemRepresentation]);
+            }
+        }];
+    }
+    
+    void openDialog(std::function<void(const char*)> open,
+            bool multiple, const char * initPath)
+    {
+        openDialogInternal(open, multiple, false, initPath);
+    }
+    
+    void openDirDialog(std::function<void(const char*)> open,
+            const char * initPath)
+    {
+        openDialogInternal(open, false, true, initPath);
+    }
+
     // protected in window, expose to our NSView
     Panel * getMouseTrack() { return Window::getMouseTrack(); }
 };

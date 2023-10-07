@@ -165,27 +165,24 @@ struct FontInstanceSTB : FontInstance
                 r.x0-oversampleX, r.y0-oversampleY, 1, 0);
             else
             {
-                float offX = float(oversampleX) - r.x0 + shiftX;
-                float offY = float(oversampleY) - r.y0 + shiftY;
-                
                 dust::Path p;
                 for(int i = 0; i < nVerts; ++i)
                 {
-                    float x = offX + verts[i].x * xSize;
-                    float y = offY - verts[i].y * ySize;
+                    float x = verts[i].x * scale;
+                    float y = verts[i].y * scale;
                     switch(verts[i].type)
                     {
                     case STBTT_vmove:
-                        p.move(x, y);
+                        p.move(x, -y);
                         break;
                     case STBTT_vline:
-                        p.line(x, y);
+                        p.line(x, -y);
                         break;
                     case STBTT_vcurve:
                         {
-                            float cx = offX + verts[i].cx * xSize;
-                            float cy = offY - verts[i].cy * ySize;
-                            p.quad(cx, cy, x, y);
+                            float cx = verts[i].cx * scale;
+                            float cy = verts[i].cy * scale;
+                            p.quad(cx, -cy, x, -y);
                         }
                         break;
                     }
@@ -197,11 +194,14 @@ struct FontInstanceSTB : FontInstance
                 // stroke the path, to force visibility
                 // makes fonts a bit fatter, but whatever
                 dust::Path p2;
-                // about one third of a sub-pixel is reasonable
-                // because this still allows single-pixel gap to dark
-                p2.stroke(p, .333f);
+                dust::TransformPath<dust::Path> tp(p2,
+                    oversampleX, 0, float(oversampleX) - r.x0 + shiftX,
+                    0, oversampleY, float(oversampleY) - r.y0 + shiftY);
+                // about 1/2 pixels?
+                p.stroke(tp, .25f);
+                
                 // copy the original path on top of the stroke
-                p.process(p2);
+                p.process(tp);
                 
                 // then just draw as usual
                 dust::renderPathRef(p2, rr,

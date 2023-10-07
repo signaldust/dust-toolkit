@@ -684,11 +684,11 @@ namespace dust
         }
 
         // add a stroke of the source path
-        Path & stroke(const Path & src, float width)
+        template<typename PathVisitor>
+        void stroke(PathVisitor && to, float width)
         {
-            StrokePath<Path> stroke(*this, width);
-            src.process(stroke);
-            return *this;
+            StrokePath<PathVisitor> stroke(to, width);
+            process(stroke);
         }
 
         // reproduce the original path commands to "out"

@@ -541,13 +541,11 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
 	}
 	
 	void saveAsDialog(std::string & out,
-		Notify save, Notify cancel, const char * path = 0)
+		Notify save, Notify cancel, const char * path)
 	{
-        char    filename[_MAX_PATH];
-        ZeroMemory(filename, sizeof(filename));
+        char    filename[_MAX_PATH] = {};
 
-        OPENFILENAME ofn;
-        ZeroMemory(&ofn, sizeof(ofn));
+        OPENFILENAME ofn = {};
         ofn.lStructSize = sizeof(ofn);
         ofn.hwndOwner = hwnd;
 
@@ -569,7 +567,9 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         ofn.Flags |= OFN_NOCHANGEDIR;
 
         // if non-zero, user clicked OK
-        if(GetSaveFileName(&ofn))
+        // FIXME: should really use Unicode, but we need a file API then
+        // because we can't just send utf-8 to fopen() and friends
+        if(GetSaveFileNameA(&ofn))
         {
             out = filename;
             save();
@@ -578,9 +578,69 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         {
             cancel();
         }
-
 	}
-	
+    
+	void openDialog(std::function<void(const char*)> open,
+        bool multiple, const char * path)
+	{
+        // 32k is the most the ANSI version will ever return
+        std::vector<char>   filename(32*1024);
+
+        OPENFILENAME ofn = {};
+        ofn.lStructSize = sizeof(ofn);
+        ofn.hwndOwner = hwnd;
+
+        // filename garbage
+        ofn.lpstrFile = filename.data();
+        ofn.nMaxFile = filename.size();
+
+        if(path) strcpy(filename.data(), path);
+
+        ofn.lpstrFileTitle = 0;
+        ofn.nMaxFileTitle = 0;
+
+        // filter
+        ofn.lpstrFilter = "All files (*.*)\0*.*\0";
+        ofn.nFilterIndex = 1;
+
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_EXPLORER;
+        // FIXME: need to figure out how to parse multiselect
+        if(multiple) ofn.Flags |= OFN_ALLOWMULTISELECT;
+        ofn.Flags |= OFN_NOCHANGEDIR;
+
+        // if non-zero, user clicked OK
+        // FIXME: should really use Unicode, but we need a file API then
+        // because we can't just send utf-8 to fopen() and friends
+        if(GetOpenFileNameA(&ofn))
+        {
+            // With multiselect we get directory followed by null
+            // followed by file strings with double null at the end
+            // So.. check if character before nFileOffset is null
+            if(ofn.nFileOffset && !filename[ofn.nFileOffset-1])
+            {
+                // add a directory separator..
+                filename[ofn.nFileOffset-1] = '\\';
+                // loop the files
+                int offset = ofn.nFileOffset;
+                while(filename[ofn.nFileOffset])
+                {
+                    open(filename.data());
+                    offset += strlen(filename.data() + offset) + 1;
+                    // inplace copy to after the directory
+                    strcpy(filename.data() + ofn.nFileOffset,
+                            filename.data() + offset);
+                }
+            }
+            else open(filename.data());
+        }
+	}
+
+	void openDirDialog(
+        std::function<void(const char*)> open, const char * path)
+    {
+        // need to use SHBrowseForFolder
+    }
+    
     struct Win32Menu : Menu
     {
         std::function<void(int)>    onSelect;

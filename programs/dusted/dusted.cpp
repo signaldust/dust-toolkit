@@ -1033,6 +1033,15 @@ struct AppWindow : dust::Panel
         switch(vk)
         {
             case dust::SCANCODE_N: newDocument(); break;
+            case dust::SCANCODE_O:
+                {
+                    auto onOpen = [&](const char * path)
+                    {
+                        openDocument(path);
+                    };
+                    getWindow()->openDialog(onOpen, true);
+                }
+                break;
             case dust::SCANCODE_F:
                 findPanel.findBox.focusSelectAll();
                 findPanel.findStatus.setText("");

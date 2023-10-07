@@ -131,7 +131,22 @@ namespace dust
         // Non-null path is set as the initial directory.
         virtual void saveAsDialog(std::string & out,
             Notify save, Notify cancel, const char * path = 0) = 0;
-        
+
+        // Shows a modal open dialog.
+        //
+        // If user selects a filename, calls open with the filename.
+        // If multiple is true and platform supports multiple selection
+        // then open is called once for each selected file.
+        //
+        // Non-null path is set as the initial directory.
+        //
+        virtual void openDialog(std::function<void(const char*)> open,
+            bool multiple = false, const char * path = 0) = 0;
+
+        // Same as openDialog, but select directories
+        virtual void openDirDialog(std::function<void(const char*)> open,
+            const char * path = 0) = 0;
+            
         // try to toggle maximized state
         // this mainly exists to start in maximized state
         // note that we don't require this to be supported

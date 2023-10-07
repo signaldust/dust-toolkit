@@ -574,6 +574,12 @@ struct BuildScrollPanel : dust::ScrollPanel
     }
 };
 
+// this just prevents the status labels from doing full redraw
+struct HeaderPanel : dust::Panel
+{
+    void reflowChildren() { layoutAsRoot(getWindow()->getDPI()); redraw(); }
+};
+
 struct BuildPanel : dust::Panel
 {
     BuildScrollPanel    scroll;
@@ -585,7 +591,7 @@ struct BuildPanel : dust::Panel
     dust::SlaveProcess  slave;
     
     dust::Grid<2,1>     headerGrid;
-    dust::Panel         header;
+    HeaderPanel         header;
     dust::Button        buildButton;
     dust::Label         buildButtonLabel;
     dust::Label         status;

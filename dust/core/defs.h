@@ -80,6 +80,28 @@
 #define DUST_STRINGIFY_WORKER(x) #x
 #define DUST_STRINGIFY(x) DUST_STRINGIFY_WORKER(x)
 
+// DEFER: This is just renamed (to avoid namespace clashes) from
+// https://www.gingerbill.org/article/2015/08/19/defer-in-cpp/
+// and using the macros above since we have them anyway
+namespace dust
+{
+    template <typename F>
+    struct privDefer {
+    	F f;
+    	privDefer(F f) : f(f) {}
+    	~privDefer() { f(); }
+    };
+    
+    template <typename F>
+    privDefer<F> defer_func(F f) {
+    	return privDefer<F>(f);
+    }
+}
+#define _DUST_DEFER(x) DUST_CONCAT_EXPAND(x, __COUNTER__)
+#define dust_defer(code) \
+    auto _DUST_DEFER(_dust_defer_) = dust::defer_func([&](){code;})
+// END DEFER
+
 namespace dust
 {
     // typedef for notifications

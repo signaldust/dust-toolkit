@@ -325,6 +325,7 @@ struct FileBrowser : dust::Panel
         auto * basename = strrchr(cwd, '/');
         if(basename) root.label = basename + 1;
 #endif
+        root.path = cwd;
     }
 };
 
@@ -1045,7 +1046,7 @@ struct AppWindow : dust::Panel
                     {
                         openDocument(path);
                     };
-                    getWindow()->openDialog(onOpen, true);
+                    getWindow()->openDialog(onOpen, true, browser.root.path.c_str());
                 }
                 break;
             case dust::SCANCODE_F:

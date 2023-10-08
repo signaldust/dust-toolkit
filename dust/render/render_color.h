@@ -125,6 +125,28 @@ namespace dust
             return rb | ag;
         }
 
+        // This is mostly for computing colors once, not optimized
+        // Computes c1/c2 and clips the result
+        static inline ARGB divide(ARGB c1, ARGB c2)
+        {
+            auto a1 = 0xff & (c1 >> 24);
+            auto r1 = 0xff & (c1 >> 16);
+            auto g1 = 0xff & (c1 >> 8);
+            auto b1 = 0xff & c1;
+
+            auto a2 = 0xff & (c2 >> 24);
+            auto r2 = 0xff & (c2 >> 16);
+            auto g2 = 0xff & (c2 >> 8);
+            auto b2 = 0xff & c2;
+
+            auto a = std::min(0xffu, (a1*0xff) / std::max(1u, a2));
+            auto r = std::min(0xffu, (r1*0xff) / std::max(1u, r2));
+            auto g = std::min(0xffu, (g1*0xff) / std::max(1u, g2));
+            auto b = std::min(0xffu, (b1*0xff) / std::max(1u, b2));
+
+            return (a<<24)|(r<<16)|(g<<8)|b;
+        }
+
         // this is the "standard" HSV but we gamma correct the results
         // since this makes it easier to create sensible gradients
         static inline ARGB getHSV(float H, float S, float V)

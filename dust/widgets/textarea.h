@@ -566,6 +566,18 @@ namespace dust
             unsigned activeAttrib = TextAttrib::aDefault;
 
             bool cursorThisLine = false;
+            float cursorX = 0;
+
+            ARGB selectColor = theme.selColor;
+            bool darkText = theme.fgColor < theme.bgColor;
+
+            // adjust selection color so that with multiply or screen
+            // we get (approximately) the desired color
+            if(darkText)
+                selectColor = color::divide(selectColor, theme.bgColor);
+            else
+                selectColor = (~0u) - color::divide(
+                    (~0u) - selectColor, (~0u) - theme.bgColor);
 
             utf8::Decoder   decoder;
             for(auto byte : buffer)
@@ -575,16 +587,26 @@ namespace dust
                     inSelection = true;
                     selectX = (int)(x + lineMargin);
                 }
-                if(bytePos == selectEnd) inSelection = false;
+                
+                if(bytePos == selectEnd)
+                {
+                    if(darkText)
+                        rc.fillRect<blend::Multiply>(
+                            paint::Color(selectColor),
+                            selectX, (int)(y-font->getAscent()),
+                            (int)(x + lineMargin) - selectX, lineHeight);
+                    else
+                        rc.fillRect<blend::Screen>(
+                            paint::Color(selectColor),
+                            selectX, (int)(y-font->getAscent()),
+                            (int)(x + lineMargin) - selectX, lineHeight);
+
+                    inSelection = false;
+                }
 
                 if(buffer.getCursor() == bytePos)
                 {
-                    drawCursor(x+lineMargin, (int)(y - font->getAscent()));
-                    
-                    // if we're in selection, skip the cursor
-                    // as far as selection high-light goes
-                    if(inSelection) selectX += (int) cursorSize;
-
+                    cursorX = x;
                     cursorThisLine = true;
                 }
                 
@@ -615,17 +637,29 @@ namespace dust
                     if(inSelection)
                     {
                         // draw the whole remaining line
-                        rc.fillRect(paint::Color(theme.selColor),
-                            selectX, (int)(y-font->getAscent()),
-                            layout.w - selectX, lineHeight);
+                        if(darkText)
+                            rc.fillRect<blend::Multiply>(
+                                paint::Color(selectColor),
+                                selectX, (int)(y-font->getAscent()),
+                                layout.w - selectX, lineHeight);
+                        else
+                            rc.fillRect<blend::Screen>(
+                                paint::Color(selectColor),
+                                selectX, (int)(y-font->getAscent()),
+                                layout.w - selectX, lineHeight);
 
                         selectX = (int)(lineMargin);
                     }
+                    
 
                     // draw the line margin for the current line
                     // so it goes on top of previous drawing
                     if(!skipHidden)
                     {
+                        if(cursorThisLine)
+                            drawCursor(cursorX+lineMargin,
+                                (int)(y - font->getAscent()));
+                    
                         drawLineMargin(rcMargin, font,
                             line, y, lineHeight, cursorThisLine);
                     }
@@ -643,14 +677,6 @@ namespace dust
                     x += (tabStop+.5f)*sw;
                     x -= fmod(x, tabStop*sw);
 
-                    // we need to special case this here
-                    if(inSelection && !skipHidden)
-                    {
-                        int nextX = (int)ceil(x + lineMargin);
-                        rc.fillRect(paint::Color(theme.selColor),
-                            selectX, lineY, nextX - selectX, lineHeight);
-                        selectX = nextX;
-                    }
                     continue;
                 }
 
@@ -681,22 +707,6 @@ namespace dust
 
                 // actual rendering, we can skip this part
                 if(skipHidden) continue;
-                if(inSelection)
-                {
-                    // use ceil() since advancing too little
-                    // can clip the edge of the character when
-                    // we draw the selection for the next character
-                    //
-                    // NOTE: this is not a robust solution as glyphs
-                    // can actually extend past their advance width
-                    // but solving that would require two passes
-                    int nextX = (int)ceil(x + lineMargin
-                        + font->getCharAdvanceW(decoder.ch));
-
-                    rc.fillRect(paint::Color(theme.selColor),
-                        selectX, lineY, nextX - selectX, lineHeight);
-                    selectX = nextX;
-                }
 
                 x += rc.drawChar(font, decoder.ch,
                     paint::Color(charColor), lineMargin + x, y);
@@ -705,18 +715,25 @@ namespace dust
             // handle trailing invalid unicode
             if(decoder.state != utf8::ACCEPT)
             {
+                x += rc.drawChar(font, utf8::invalid,
+                    paint::Color(theme.fgColor), lineMargin + x, y);
+
                 if(bytePos == selectEnd)
                 {
                     int nextX = (int)(x + lineMargin
                         + font->getCharAdvanceW(utf8::invalid));
 
-                    rc.fillRect(paint::Color(theme.selColor),
-                        selectX, (int)(y - font->getAscent()),
-                        nextX - selectX, lineHeight);
+                    if(darkText)
+                        rc.fillRect<blend::Multiply>(
+                            paint::Color(selectColor),
+                            selectX, (int)(y - font->getAscent()),
+                            nextX - selectX, lineHeight);
+                    else
+                        rc.fillRect<blend::Screen>(
+                            paint::Color(selectColor),
+                            selectX, (int)(y - font->getAscent()),
+                            nextX - selectX, lineHeight);
                 }
-
-                x += rc.drawChar(font, utf8::invalid,
-                    paint::Color(theme.fgColor), lineMargin + x, y);
             }
 
             if(buffer.getCursor() == bytePos)

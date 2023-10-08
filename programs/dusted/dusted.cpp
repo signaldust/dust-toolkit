@@ -36,6 +36,8 @@
 #ifndef _WIN32
 #include <dirent.h>
 #include <stdlib.h>
+#else
+#include <direct.h>
 #endif
 
 // This is a temporary hack of a treeview..
@@ -150,16 +152,15 @@ namespace dust
 
         void toggle()
         {
-            isOpen = !isOpen;
-            if(isOpen) readDirectory(); else clear();
-
-            reflow();
+            if(!isOpen) readDirectory(); else clear();
         }
 
         void clear()
         {
             subDirs.clear();
             files.clear();
+            isOpen = false;
+            reflow();
         }
 
         virtual ARGB getColor() { return theme.actColor; }
@@ -194,6 +195,8 @@ namespace dust
         void readDirectory()
         {
             clear();
+            isOpen = true;
+            
 #ifdef _WIN32
 			WIN32_FIND_DATA data;
 			HANDLE hFind = FindFirstFile((path+"/*").c_str(), &data);
@@ -291,8 +294,11 @@ namespace dust
 
 struct FileBrowser : dust::Panel
 {
-    dust::ScrollPanel    scroll;
-    dust::TreeViewDir    root;
+    dust::Button        btnChdir;
+    dust::Label         lblChdir;
+    
+    dust::ScrollPanel   scroll;
+    dust::TreeViewDir   root;
 
     struct Filler : Panel
     {
@@ -307,6 +313,11 @@ struct FileBrowser : dust::Panel
     {
         style.rule = dust::LayoutStyle::WEST;
 
+        btnChdir.setParent(*this);
+        btnChdir.style.rule = dust::LayoutStyle::SOUTH;
+        lblChdir.setParent(btnChdir);
+        lblChdir.setText("Change project root..");
+
         scroll.setParent(*this);
         scroll.style.minSizeX = 120;
         root.setParent(scroll.getContent());
@@ -314,6 +325,11 @@ struct FileBrowser : dust::Panel
         filler.style.rule = dust::LayoutStyle::FILL;
         filler.setParent(scroll.getContent());
 
+        updateRoot();
+    }
+    
+    void updateRoot()
+    {
 #ifdef _WIN32
         char rootPath[MAX_PATH+1];
 		const char * cwd = _fullpath(rootPath, root.path.c_str(), MAX_PATH);
@@ -326,6 +342,14 @@ struct FileBrowser : dust::Panel
         if(basename) root.label = basename + 1;
 #endif
         root.path = cwd;
+        root.clear();
+
+        // set current working directory
+#ifdef _WIN32
+        _chdir(cwd);
+#else
+        chdir(cwd);
+#endif
     }
 };
 
@@ -875,13 +899,9 @@ struct AppWindow : dust::Panel
             getWindow()->setTitle(browser.root.label.c_str());
             return;
         }
-#ifdef _WIN32
-        char rootPath[MAX_PATH+1];
-		const char * cwd = _fullpath(rootPath, browser.root.path.c_str(), MAX_PATH);
-#else
-        char rootPath[PATH_MAX];
-        const char * cwd = realpath(browser.root.path.c_str(), rootPath);
-#endif
+        
+		const char * cwd = browser.root.path.c_str();
+        
         // strip common prefix
         while(*path && *cwd && *path == *cwd) { ++path; ++cwd; }
 
@@ -1025,6 +1045,17 @@ struct AppWindow : dust::Panel
         setLabelFromPath(activeTab);
     }
 
+    void changeDirectory()
+    {
+        auto onOpenDir = [&](const char * path)
+        {
+            browser.root.path = path;
+            browser.updateRoot();
+            setWindowTitle();
+        };
+        getWindow()->openDirDialog(onOpenDir);
+    }
+
     void ev_update()
     {
         // if we have no document with focus, set it to main window
@@ -1087,6 +1118,9 @@ struct AppWindow : dust::Panel
         switch(vk)
         {
             case dust::SCANCODE_B: buildPanel.commandBox.focus(); break;
+
+            case dust::SCANCODE_O: changeDirectory(); break;
+            
             case dust::SCANCODE_SLASH:
             {
                 auto & panel = (panel0.contains(activeTab)) ? panel0 : panel1;
@@ -1145,6 +1179,8 @@ struct AppWindow : dust::Panel
         {
             this->openDocument(path);
         };
+
+        browser.btnChdir.onClick = [&](){ changeDirectory(); };
         
         buildPanel.setParent(*this);
         buildPanel.output.onClickError = [this](const char *path, int l, int c)

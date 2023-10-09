@@ -30,7 +30,7 @@ extern "C" DUST_EXPORT BOOL WINAPI DllMain(
     HINSTANCE hInst, DWORD dwReason, LPVOID lpReserved)
 {
     if(dwReason == DLL_PROCESS_ATTACH) { hInstance = hInst; }
-	return TRUE;
+    return TRUE;
 }
 
 static inline unsigned getAsyncMods()
@@ -46,28 +46,26 @@ static inline unsigned getAsyncMods()
     return mods;
 }
 
-// convert multibyte to utf-8
-void wideToUTF8(std::vector<char> & out, const WCHAR * in, int64_t inSize = -1)
+std::string dust::to_u8(wchar_t const * in, size_t inLen)
 {
-	unsigned needSize = ::WideCharToMultiByte(CP_UTF8, 0, in, inSize, 0, 0, 0, 0);
-	if(needSize)
-	{
-		out.resize(needSize);
-		::WideCharToMultiByte(CP_UTF8, 0, in, inSize, out.data(), out.size(), 0, 0);
+    unsigned needSize = ::WideCharToMultiByte(CP_UTF8, 0, in, inLen, 0, 0, 0, 0);
+    std::string out(needSize, 0);
+    if(needSize)
+    {
+        ::WideCharToMultiByte(CP_UTF8, 0, in, inLen, &out[0], out.size(), 0, 0);
     }
-    else out.clear();
+    return out;
 }
 
-void utf8ToWide(std::vector<WCHAR> & out, const char * in, int64_t inSize = -1)
+std::wstring dust::to_u16(char const * in, size_t inLen)
 {
-    unsigned needSize = ::MultiByteToWideChar(CP_UTF8, 0, in, inSize, 0, 0);
-	if(needSize)
-	{
-		out.resize(needSize);
-		::MultiByteToWideChar(CP_UTF8, 0, in, inSize, out.data(), out.size());
+    unsigned needSize = ::MultiByteToWideChar(CP_UTF8, 0, in, inLen, 0, 0);
+    std::wstring out(needSize, 0);
+    if(needSize)
+    {
+        ::MultiByteToWideChar(CP_UTF8, 0, in, inLen, &out[0], out.size());
     }
-    else out.clear();
-    
+    return out;
 }
 
 // ugly low-level wheel hook.. but well.. yeah it's kinda necessary
@@ -266,10 +264,10 @@ static const char winClassName[] = "Win32Wrapper";
 static LRESULT CALLBACK wrapperWinProc(
     HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	
+    
     auto ctl = (Win32Callback *) GetWindowLongPtrA(hwnd, GWLP_USERDATA);
-	
-	return ctl ? ctl->callback(hwnd, msg, wParam, lParam)
+    
+    return ctl ? ctl->callback(hwnd, msg, wParam, lParam)
         : DefWindowProcA(hwnd, msg, wParam, lParam);
 }
 
@@ -383,10 +381,10 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
     Win32Window(WindowDelegate & delegate, void *parent, int w, int h)
         : delegate(delegate)
     {
-		// initial default
-		minSizeX = w;
-		minSizeY = h;
-		
+        // initial default
+        minSizeX = w;
+        minSizeY = h;
+        
         // might need to adjust these
         DWORD ex_style = 0;
         DWORD style = WS_CLIPCHILDREN;
@@ -404,7 +402,7 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         if(!hwnd) debugBreak(); // should never fail
 
         SetWindowLongPtrA(hwnd, GWLP_USERDATA, 
-			(LONG_PTR) (Win32Callback*) this);
+            (LONG_PTR) (Win32Callback*) this);
         delegate.win_created();
 
         // we need this for drag&drop but it also gets us COM for openDir
@@ -417,9 +415,9 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         }
 
         // this will fix title-bar
-		if(!parent) resize(w, h);
+        if(!parent) resize(w, h);
         
-		::SetTimer(hwnd, 0, 1000/60, 0);
+        ::SetTimer(hwnd, 0, 1000/60, 0);
 
 #if DUST_USE_OPENGL
 
@@ -510,23 +508,23 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
     {
         delegate.win_drop_file(panel, path);
     }
-	
-	void closeWindow() { DestroyWindow(hwnd); }
-	void * getSystemHandle() { return (void*) hwnd; }
-	void setMinSize(int w, int h) { minSizeX = w; minSizeY = h; }
     
-	void resize(int w, int h)
+    void closeWindow() { DestroyWindow(hwnd); }
+    void * getSystemHandle() { return (void*) hwnd; }
+    void setMinSize(int w, int h) { minSizeX = w; minSizeY = h; }
+    
+    void resize(int w, int h)
     {
-		// we need to adjust for correct client size
-		RECT wR, cR;
-		GetWindowRect(hwnd, &wR);
-		GetClientRect(hwnd, &cR);
+        // we need to adjust for correct client size
+        RECT wR, cR;
+        GetWindowRect(hwnd, &wR);
+        GetClientRect(hwnd, &cR);
 
-		w += wR.right - wR.left - cR.right + cR.left;
-		h += wR.bottom - wR.top - cR.bottom + cR.top;
-		
-		::SetWindowPos(hwnd, 0, 0, 0, w, h,
-			SWP_NOMOVE | SWP_NOREPOSITION | SWP_SHOWWINDOW);
+        w += wR.right - wR.left - cR.right + cR.left;
+        h += wR.bottom - wR.top - cR.bottom + cR.top;
+        
+        ::SetWindowPos(hwnd, 0, 0, 0, w, h,
+            SWP_NOMOVE | SWP_NOREPOSITION | SWP_SHOWWINDOW);
     }
 
     void toggleMaximize()
@@ -543,15 +541,15 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
             default: break;
         }
     }
-	
-	void setTitle(const char * txt)
-	{
-		SetWindowTextA(hwnd, txt);
-	}
-	
-	void confirmClose(
-		Notify saveAndClose, Notify close, Notify cancel)
-	{
+    
+    void setTitle(const char * txt)
+    {
+        SetWindowTextA(hwnd, txt);
+    }
+    
+    void confirmClose(
+        Notify saveAndClose, Notify close, Notify cancel)
+    {
         // need one extra for the null
         std::vector<char> title(GetWindowTextLengthA(hwnd) + 1);
         GetWindowTextA(hwnd, title.data(), title.size());
@@ -565,11 +563,11 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         case IDNO: close(); break;
         default: cancel(); break;
         }
-	}
+    }
 
     // See openDialogCom below
     bool saveAsDialogCOM(std::string & out,
-		Notify save, Notify cancel, const char * path)
+        Notify save, Notify cancel, const char * path)
     {
 #define CHECK_HR(code) { HRESULT _hr = (code); if(!SUCCEEDED(_hr)) return true; }
         // We check this explicitly, because we can also use GetOpenFileName
@@ -603,13 +601,11 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
 
         if(path)
         {
-            std::vector<WCHAR>  wpath;
-            utf8ToWide(wpath, path);
-            
             IShellItem *initPath = 0;
             // don't bail out if this fails, we'll just skip it
             if(SUCCEEDED(
-                SHCreateItemFromParsingName(wpath.data(), 0, IID_PPV_ARGS(&initPath))))
+                SHCreateItemFromParsingName(
+                    to_u16(path).c_str(), 0, IID_PPV_ARGS(&initPath))))
             {
                 dialog->SetDefaultFolder(initPath);
                 initPath->Release();
@@ -631,18 +627,16 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         DUST_TRACE
 
         // utf-8 dance: FIXME: refactor into a function
-		std::vector<char> filename;
-        wideToUTF8(filename, pszFilePath);
-        out = filename.data();
+        out = to_u8(pszFilePath);
         if(out.size()) { save(); didSave = true; }
         
         return true;
 #undef CHECK_HR
     }
     
-	void saveAsDialog(std::string & out,
-		Notify save, Notify cancel, const char * path)
-	{
+    void saveAsDialog(std::string & out,
+        Notify save, Notify cancel, const char * path)
+    {
         if(saveAsDialogCOM(out, save, cancel, path)) return;
 
         char    filename[_MAX_PATH] = {};
@@ -680,7 +674,7 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         {
             cancel();
         }
-	}
+    }
 
     // This tries to use IFileDialog which is Vista+
     // If we can't create one (eg. on XP?) then return false
@@ -713,13 +707,11 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         
         if(path)
         {
-            std::vector<WCHAR>  wpath;
-            utf8ToWide(wpath, path);
-            
             IShellItem *initPath = 0;
             // don't bail out if this fails, we'll just skip it
             if(SUCCEEDED(
-                SHCreateItemFromParsingName(wpath.data(), 0, IID_PPV_ARGS(&initPath))))
+                SHCreateItemFromParsingName(
+                    to_u16(path).c_str(), 0, IID_PPV_ARGS(&initPath))))
             {
                 dialog->SetDefaultFolder(initPath);
                 initPath->Release();
@@ -747,18 +739,15 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
             CHECK_HR(item->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath));
             dust_defer( CoTaskMemFree(pszFilePath) );
 
-            // utf-8 dance: FIXME: refactor into a function
-    		std::vector<char> filename;
-            wideToUTF8(filename, pszFilePath);
-            open(filename.data());
+            open(to_u8(pszFilePath).c_str());
         }
         return true;
 #undef CHECK_HR
     }
     
-	void openDialog(std::function<void(const char*)> open,
+    void openDialog(std::function<void(const char*)> open,
         bool multiple, const char * path)
-	{
+    {
         // if this returns false, IFileDialog is probably not available
         if(openDialogCOM(open, multiple, false, path)) return;
         
@@ -814,9 +803,9 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
             }
             else open(filename.data());
         }
-	}
+    }
 
-	void openDirDialog(
+    void openDirDialog(
         std::function<void(const char*)> open, const char * path)
     {
         // if this returns false, IFileDialog is probably not available
@@ -882,15 +871,15 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         }
     } * activeMenu = 0;
     
-	Menu * createMenu(const std::function<void(int)> & onSelect)
-	{
+    Menu * createMenu(const std::function<void(int)> & onSelect)
+    {
         Win32Menu * menu = new Win32Menu();
         menu->onSelect = onSelect;
         menu->win = this;
         menu->hMenu = CreatePopupMenu();
         
         return menu;
-	}
+    }
 
     HICON   windowIcon = 0;
     HICON   windowIconSmall = 0;
@@ -959,54 +948,54 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         windowIcon = newIcon;
         windowIconSmall = newIconSmall;
     }
-	
-	void platformBlit(Surface & backBuf)
-	{
-		// COPY TO SCREEN	
-		BITMAPINFO bmi;
-		memset(&bmi, 0, sizeof(BITMAPINFOHEADER));
-		bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-		bmi.bmiHeader.biWidth = backBuf.getPitch();
-		bmi.bmiHeader.biHeight = -int(backBuf.getSizeY());
-		bmi.bmiHeader.biPlanes = 1;
-		bmi.bmiHeader.biBitCount = 32;
-		bmi.bmiHeader.biCompression = BI_RGB;
+    
+    void platformBlit(Surface & backBuf)
+    {
+        // COPY TO SCREEN    
+        BITMAPINFO bmi;
+        memset(&bmi, 0, sizeof(BITMAPINFOHEADER));
+        bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bmi.bmiHeader.biWidth = backBuf.getPitch();
+        bmi.bmiHeader.biHeight = -int(backBuf.getSizeY());
+        bmi.bmiHeader.biPlanes = 1;
+        bmi.bmiHeader.biBitCount = 32;
+        bmi.bmiHeader.biCompression = BI_RGB;
 
-		// can't figure out how to get the update region
-		// optimized copy to work, so just hope GDI clips
-		SetDIBitsToDevice(hdc, 0, 0, 
-			backBuf.getSizeX(), backBuf.getSizeY(),
-			0, 0, 0, backBuf.getSizeY(), backBuf.getPixels(), &bmi,
-			DIB_RGB_COLORS);
-	}
-	
-	int nClickBtn = 0;
-	int nClicks = 0;
-	RECT clickRect;
-	DWORD clickTimeMS;
+        // can't figure out how to get the update region
+        // optimized copy to work, so just hope GDI clips
+        SetDIBitsToDevice(hdc, 0, 0, 
+            backBuf.getSizeX(), backBuf.getSizeY(),
+            0, 0, 0, backBuf.getSizeY(), backBuf.getPixels(), &bmi,
+            DIB_RGB_COLORS);
+    }
+    
+    int nClickBtn = 0;
+    int nClicks = 0;
+    RECT clickRect;
+    DWORD clickTimeMS;
 
-	int getClickCount(int btn, int x, int y)
-	{
-		POINT pt = { x, y };
-		DWORD time = GetMessageTime();
+    int getClickCount(int btn, int x, int y)
+    {
+        POINT pt = { x, y };
+        DWORD time = GetMessageTime();
 
-		if (nClickBtn != btn || !PtInRect(&clickRect, pt) 
-		|| time - clickTimeMS > GetDoubleClickTime())
-		{
-			nClicks = 0;
-			nClickBtn = btn;
-		}
+        if (nClickBtn != btn || !PtInRect(&clickRect, pt) 
+        || time - clickTimeMS > GetDoubleClickTime())
+        {
+            nClicks = 0;
+            nClickBtn = btn;
+        }
 
-		++nClicks;
-		clickTimeMS = time;
+        ++nClicks;
+        clickTimeMS = time;
 
-		SetRect(&clickRect, x, y, x, y);
-		InflateRect(&clickRect,
-				  GetSystemMetrics(SM_CXDOUBLECLK) / 2,
-				  GetSystemMetrics(SM_CYDOUBLECLK) / 2);
-				  
-		return nClicks;
-	}
+        SetRect(&clickRect, x, y, x, y);
+        InflateRect(&clickRect,
+                  GetSystemMetrics(SM_CXDOUBLECLK) / 2,
+                  GetSystemMetrics(SM_CYDOUBLECLK) / 2);
+                  
+        return nClicks;
+    }
 };
 
 
@@ -1018,7 +1007,7 @@ Window * dust::createWindow(
 
 LRESULT Win32Window::callback(
     HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{	
+{    
     switch(msg)
     {
     case WM_ACTIVATE:
@@ -1028,7 +1017,7 @@ LRESULT Win32Window::callback(
             delegate.win_activate(active);
             if(getFocus()) getFocus()->ev_focus(active);
             // get focus if we're not losing activation
-			if(active) SetFocus(hwnd);
+            if(active) SetFocus(hwnd);
             DefWindowProcA(hwnd, msg, wParam, lParam);
         }
         break;
@@ -1068,7 +1057,7 @@ LRESULT Win32Window::callback(
             GetClientRect(hwnd, &cRect);
             int w = cRect.right - cRect.left;
             int h = cRect.bottom - cRect.top;
-			
+            
             layoutAndPaint(w, h);
             
 #if DUST_USE_OPENGL
@@ -1100,7 +1089,7 @@ LRESULT Win32Window::callback(
 
     }
     break;
-	
+    
     // this is a work-around for some VST hosts (eXT)
     // causing lag issues if this is not done
     case WM_SETCURSOR:
@@ -1115,9 +1104,9 @@ LRESULT Win32Window::callback(
         sendMouseExit();
         wheelHook.removeHook();
         break;
-		
-	case WM_CAPTURECHANGED:
-		// cancel drag, then send mouse exit to notify the control
+        
+    case WM_CAPTURECHANGED:
+        // cancel drag, then send mouse exit to notify the control
         // this is a situation that can't happen on OSX though?
         //
         // NOTE: in some situations (eg. menu just closed) we can end up
@@ -1128,7 +1117,7 @@ LRESULT Win32Window::callback(
             cancelDrag();
             sendMouseExit();
         }
-		break;
+        break;
 
     // FIXME: this is essentially boilerplate for mouse messages
     // so maybe factor it all into one function that does the thing?
@@ -1165,7 +1154,7 @@ LRESULT Win32Window::callback(
             int keymods = getAsyncMods();
 
             MouseEvent ev(MouseEvent::tDown, x, y, 1, 
-				getClickCount(1, x, y), keymods);
+                getClickCount(1, x, y), keymods);
             sendMouseEvent(ev);
 
         }
@@ -1195,7 +1184,7 @@ LRESULT Win32Window::callback(
             int keymods = getAsyncMods();
 
             MouseEvent ev(MouseEvent::tDown, x, y, 2, 
-				getClickCount(2, x, y), keymods);
+                getClickCount(2, x, y), keymods);
             sendMouseEvent(ev);
         }
         break;
@@ -1224,7 +1213,7 @@ LRESULT Win32Window::callback(
             int keymods = getAsyncMods();
 
             MouseEvent ev(MouseEvent::tDown, x, y, 3, 
-				getClickCount(2, x, y), keymods);
+                getClickCount(2, x, y), keymods);
             sendMouseEvent(ev);
         }
         break;
@@ -1377,8 +1366,8 @@ void Application::exit()
 
 void Application::run()
 {
-	app_startup();
-	
+    app_startup();
+    
     if(!nOpenWindow) return;
     MSG msg;
     while(GetMessage( &msg, 0, 0, 0 ))
@@ -1417,146 +1406,147 @@ bool dust::clipboard::setText(const char * buf, unsigned len)
         return false;
     }
 
-	if(!OpenClipboard(0)) return false;
-	
-	// get rid of existing contents
-	bool error = !EmptyClipboard();
+    if(!OpenClipboard(0)) return false;
+    
+    // get rid of existing contents
+    bool error = !EmptyClipboard();
 
-	if(!error)
-	{
-		HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, wbuf.size() * sizeof(WCHAR));
-		if(!hg) error = true;
-		else
-		{
-			void *ptr = GlobalLock(hg);
-			if(!ptr)
-			{
-				error = true;
-			}
-			else
-			{
-				memcpy(ptr, &wbuf[0], wbuf.size()*sizeof(WCHAR));
-				GlobalUnlock(hg);
+    if(!error)
+    {
+        HGLOBAL hg = GlobalAlloc(GMEM_MOVEABLE, wbuf.size() * sizeof(WCHAR));
+        if(!hg) error = true;
+        else
+        {
+            void *ptr = GlobalLock(hg);
+            if(!ptr)
+            {
+                error = true;
+            }
+            else
+            {
+                memcpy(ptr, &wbuf[0], wbuf.size()*sizeof(WCHAR));
+                GlobalUnlock(hg);
 
-				if(!SetClipboardData(CF_UNICODETEXT, hg)) error = true;
-			}
+                if(!SetClipboardData(CF_UNICODETEXT, hg)) error = true;
+            }
 
-			if(error) GlobalFree(hg);
-		}
-	}
+            if(error) GlobalFree(hg);
+        }
+    }
 
-	CloseClipboard();
-	return !error;
+    CloseClipboard();
+    return !error;
 
 }
 
 bool dust::clipboard::getText(std::string & out)
 {
-	std::vector<char> wbuf;
+    std::vector<char> wbuf;
 
-	bool haveUnicode = 0 != IsClipboardFormatAvailable(CF_UNICODETEXT);
-	bool haveText = haveUnicode || 0 != IsClipboardFormatAvailable(CF_TEXT);
+    bool haveUnicode = 0 != IsClipboardFormatAvailable(CF_UNICODETEXT);
+    bool haveText = haveUnicode || 0 != IsClipboardFormatAvailable(CF_TEXT);
 
-	bool isOpen = haveText && (0 != OpenClipboard(0));
-	if(isOpen)
-	{
-		if(haveUnicode)
-		{
-			HANDLE hdata = GetClipboardData(CF_UNICODETEXT);
-			if(hdata)
-			{
-				wbuf.resize(GlobalSize(hdata));
-				void * ptr = GlobalLock(hdata);
-				if(ptr)
-				{
-					memcpy(&wbuf[0], ptr, wbuf.size());
-				}
-				else
-				{
-					haveText = false;
-				}
-			}
-			else
-			{
-				haveText = false;
-			}
-		}
-		else
-		{
-			// the joy of ANSI text
-			std::vector<char> abuf;
-			
-			HANDLE hdata = GetClipboardData(CF_TEXT);
-			if(hdata)
-			{
-				abuf.resize(GlobalSize(hdata));
-				void * ptr = GlobalLock(hdata);
-				if(ptr)
-				{
-					memcpy(&abuf[0], ptr, abuf.size());
-				}
-				else
-				{
-					haveText = false;
-				}
-			}
-			else
-			{
-				haveText = false;
-			}
+    bool isOpen = haveText && (0 != OpenClipboard(0));
+    if(isOpen)
+    {
+        if(haveUnicode)
+        {
+            HANDLE hdata = GetClipboardData(CF_UNICODETEXT);
+            if(hdata)
+            {
+                wbuf.resize(GlobalSize(hdata));
+                void * ptr = GlobalLock(hdata);
+                if(ptr)
+                {
+                    memcpy(&wbuf[0], ptr, wbuf.size());
+                }
+                else
+                {
+                    haveText = false;
+                }
+            }
+            else
+            {
+                haveText = false;
+            }
+        }
+        else
+        {
+            // the joy of ANSI text
+            std::vector<char> abuf;
+            
+            HANDLE hdata = GetClipboardData(CF_TEXT);
+            if(hdata)
+            {
+                abuf.resize(GlobalSize(hdata));
+                void * ptr = GlobalLock(hdata);
+                if(ptr)
+                {
+                    memcpy(&abuf[0], ptr, abuf.size());
+                }
+                else
+                {
+                    haveText = false;
+                }
+            }
+            else
+            {
+                haveText = false;
+            }
 
-			if(haveText)
-			{
-				// convert ansi to wchar 
-				unsigned needSize = ::MultiByteToWideChar(CP_ACP, 0, 
-					&abuf[0], abuf.size(), 0, 0);
-				if(needSize)
-				{
-					wbuf.resize(needSize);
-					::MultiByteToWideChar(CP_ACP, 0, 
-						&abuf[0], abuf.size(), (WCHAR*)&wbuf[0], 
-						wbuf.size() / sizeof(WCHAR));
-				}
-				else
-				{
-					haveText = false;
-				}
-			}
-		}
+            if(haveText)
+            {
+                // convert ansi to wchar 
+                unsigned needSize = ::MultiByteToWideChar(CP_ACP, 0, 
+                    &abuf[0], abuf.size(), 0, 0);
+                if(needSize)
+                {
+                    wbuf.resize(needSize);
+                    ::MultiByteToWideChar(CP_ACP, 0, 
+                        &abuf[0], abuf.size(), (WCHAR*)&wbuf[0], 
+                        wbuf.size() / sizeof(WCHAR));
+                }
+                else
+                {
+                    haveText = false;
+                }
+            }
+        }
 
-		CloseClipboard();
-	}
+        CloseClipboard();
+    }
 
-	// at this point if haveText is still true, then we should have
-	// widechar string in wbuf and we need to convert to utf-8
-	if(haveText)
-	{
-		std::vector<char> ubuf;
-        wideToUTF8(ubuf, (WCHAR*)wbuf.data(), wbuf.size()/sizeof(WCHAR));
-		
-		if(ubuf.size())
-		{
-			// and then ... we do CRLF dance
-			bool crlf = false;
-			for(int i = 0; i < ubuf.size(); ++i)
-			{
-				if(ubuf[i] == '\r') { crlf = true; continue; }
-				if(ubuf[i] == '\n') crlf = false;
-				if(crlf)
-				{
-					out = out + '\n';
-				}
-				// filter out embedded nulls and the final terminator
-				if(!ubuf[i]) continue;
-				out = out + ubuf[i];
-			}
+    // at this point if haveText is still true, then we should have
+    // widechar string in wbuf and we need to convert to utf-8
+    if(haveText)
+    {
+        auto ubuf = to_u8((WCHAR*)wbuf.data(), wbuf.size()/sizeof(WCHAR));
+        if(ubuf.size())
+        {
+            out.clear();
+            out.reserve(ubuf.size());
+          
+            // and then ... we do CRLF dance
+            bool crlf = false;
+            for(int i = 0; i < ubuf.size(); ++i)
+            {
+                if(ubuf[i] == '\r') { crlf = true; continue; }
+                if(ubuf[i] == '\n') crlf = false;
+                if(crlf)
+                {
+                    out = out + '\n';
+                }
+                // filter out embedded nulls and the final terminator
+                if(!ubuf[i]) continue;
+                out = out + ubuf[i];
+            }
 
-			return true;
-		}
-	}
+            return true;
+        }
+    }
 
-	return false;
-}	
+    return false;
+}    
 
 #else
 unsigned __platform_not_win32;  // dummy symbol to silences libtool

@@ -87,14 +87,14 @@ namespace dust
 {
     template <typename F>
     struct privDefer {
-    	F f;
-    	privDefer(F f) : f(f) {}
-    	~privDefer() { f(); }
+        F f;
+        privDefer(F f) : f(f) {}
+        ~privDefer() { f(); }
     };
     
     template <typename F>
     privDefer<F> defer_func(F f) {
-    	return privDefer<F>(f);
+        return privDefer<F>(f);
     }
 }
 #define _DUST_DEFER(x) DUST_CONCAT_EXPAND(x, __COUNTER__)
@@ -234,6 +234,20 @@ namespace dust
     // returns a CFUrlRef for the application or plugin bundle
     // this is useful for plugins like AudioUnits
     void * getModuleBundleURL();
+#endif
+
+#ifdef _WIN32
+
+    // These are for dealing with WinAPI: convert utf8 <-> utf16
+    std::string to_u8(wchar_t const * in, size_t inLen = -1);
+    std::wstring to_u16(char const * in, size_t inLen = -1);
+
+    // wrappers for string
+    static inline std::string to_u8(std::wstring const & in)
+    { return to_u8(in.data(), in.size()); }
+    static inline std::wstring to_u16(std::string const & in)
+    { return to_u16(in.data(), in.size()); }
+    
 #endif
 
 };

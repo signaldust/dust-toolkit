@@ -165,7 +165,7 @@ namespace dust
         float pt() { return getDPI() * (1 / 72.f); }
 
         void reflowChildren() { needLayout = true; }
-        void redrawRect(const Rect & r, bool allowExtraPass);
+        void redrawRect(const Rect & r);
 
         Window();
         ~Window();
@@ -259,7 +259,7 @@ namespace dust
 #if DUST_USE_OPENGL
             if(needRecomposite) return true;
 #endif
-            return needLayout || !paintRect.isEmpty() || redrawRects.size();
+            return needLayout || redrawRects.size();
         }
 
 #if DUST_USE_OPENGL
@@ -296,13 +296,9 @@ namespace dust
 
         unsigned        dragButton;
 
-        Rect            paintRect;
-
         Surface         backingSurface;
 
-        // this is used when allowExtraPass is set for redrawRect
         std::vector<Rect>   redrawRects;
-
         // this is used to double-buffer redrawRects
         std::vector<Rect>   paintQueue;
     };

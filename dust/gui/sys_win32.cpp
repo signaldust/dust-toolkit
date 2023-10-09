@@ -13,6 +13,8 @@
     
 #include <windows.h>
 #include <commctrl.h>
+#include <shlobj.h>     // for browser select (using ugly old dialog, whatever)
+#include <shobjidl.h>   // for browser select (using ugly Vista+ COM stuff)
 
 #if DUST_USE_OPENGL
 # include "GL/gl3w.h"
@@ -42,6 +44,30 @@ static inline unsigned getAsyncMods()
     if ( GetAsyncKeyState( VK_RMENU ) & 0x8000 ) mods |= dust::KEYMOD_ALT;
     else if ( GetAsyncKeyState( VK_LCONTROL ) & 0x8000 ) mods |= dust::KEYMOD_CTRL;
     return mods;
+}
+
+// convert multibyte to utf-8
+void wideToUTF8(std::vector<char> & out, const WCHAR * in, int64_t inSize = -1)
+{
+	unsigned needSize = ::WideCharToMultiByte(CP_UTF8, 0, in, inSize, 0, 0, 0, 0);
+	if(needSize)
+	{
+		out.resize(needSize);
+		::WideCharToMultiByte(CP_UTF8, 0, in, inSize, out.data(), out.size(), 0, 0);
+    }
+    else out.clear();
+}
+
+void utf8ToWide(std::vector<WCHAR> & out, const char * in, int64_t inSize = -1)
+{
+    unsigned needSize = ::MultiByteToWideChar(CP_UTF8, 0, in, inSize, 0, 0);
+	if(needSize)
+	{
+		out.resize(needSize);
+		::MultiByteToWideChar(CP_UTF8, 0, in, inSize, out.data(), out.size());
+    }
+    else out.clear();
+    
 }
 
 // ugly low-level wheel hook.. but well.. yeah it's kinda necessary
@@ -381,9 +407,10 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
 			(LONG_PTR) (Win32Callback*) this);
         delegate.win_created();
 
+        // we need this for drag&drop but it also gets us COM for openDir
+        OleInitialize(NULL);
         if(delegate.win_can_dropfiles())
         {
-            OleInitialize(NULL);
             iDropTarget = new WinDropTarget(*this);
             CoLockObjectExternal(iDropTarget, true, true);
             RegisterDragDrop(hwnd, iDropTarget);
@@ -434,8 +461,8 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
             RevokeDragDrop(hwnd);
             iDropTarget->Release();
             CoLockObjectExternal(iDropTarget, false, true);
-            OleUninitialize();
         }
+        OleUninitialize();
         
         removeAllChildren();
         delegate.win_closed();
@@ -539,10 +566,85 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         default: cancel(); break;
         }
 	}
-	
+
+    // See openDialogCom below
+    bool saveAsDialogCOM(std::string & out,
+		Notify save, Notify cancel, const char * path)
+    {
+#define CHECK_HR(code) { HRESULT _hr = (code); if(!SUCCEEDED(_hr)) return true; }
+        // We check this explicitly, because we can also use GetOpenFileName
+        // which is available since forever, where as IFileDialog is Vista+
+        IFileSaveDialog *dialog = NULL;
+        HRESULT hr = (CoCreateInstance(CLSID_FileSaveDialog, 
+                          NULL, 
+                          CLSCTX_INPROC_SERVER, 
+                          IID_PPV_ARGS(&dialog)));
+        if(!SUCCEEDED(hr)) return false;
+        dust_defer( dialog->Release() );
+
+        // we'll call cancel() if whatever bad happens
+        bool didSave = false;
+        dust_defer( if(!didSave) cancel(); );
+
+        {
+            DWORD dwFlags;
+            // Apparently we should always get default flags..
+            CHECK_HR(dialog->GetOptions(&dwFlags));
+            CHECK_HR(dialog->SetOptions(dwFlags
+                | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR));
+        }
+
+        // For save dialog (but not open dialog) the box appears to be there always?!
+        // We could theoretically take existing extension from previous path.
+        COMDLG_FILTERSPEC fileTypes[1] = {
+            {L"All files (*.*)", L"*.*"}
+        };
+        CHECK_HR(dialog->SetFileTypes(1, fileTypes));
+
+        if(path)
+        {
+            std::vector<WCHAR>  wpath;
+            utf8ToWide(wpath, path);
+            
+            IShellItem *initPath = 0;
+            // don't bail out if this fails, we'll just skip it
+            if(SUCCEEDED(
+                SHCreateItemFromParsingName(wpath.data(), 0, IID_PPV_ARGS(&initPath))))
+            {
+                dialog->SetDefaultFolder(initPath);
+                initPath->Release();
+            }
+        }
+    
+        // Show the dialog - this fails if user cancels
+        CHECK_HR(dialog->Show(hwnd));
+
+        // item array
+        IShellItem *result;
+        CHECK_HR(dialog->GetResult(&result));
+        dust_defer( result->Release() );
+        DUST_TRACE
+
+        PWSTR pszFilePath = NULL;
+        CHECK_HR(result->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath));
+        dust_defer( CoTaskMemFree(pszFilePath) );
+        DUST_TRACE
+
+        // utf-8 dance: FIXME: refactor into a function
+		std::vector<char> filename;
+        wideToUTF8(filename, pszFilePath);
+        out = filename.data();
+        if(out.size()) { save(); didSave = true; }
+        
+        return true;
+#undef CHECK_HR
+    }
+    
 	void saveAsDialog(std::string & out,
 		Notify save, Notify cancel, const char * path)
 	{
+        if(saveAsDialogCOM(out, save, cancel, path)) return;
+
         char    filename[_MAX_PATH] = {};
 
         OPENFILENAME ofn = {};
@@ -579,10 +681,89 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
             cancel();
         }
 	}
+
+    // This tries to use IFileDialog which is Vista+
+    // If we can't create one (eg. on XP?) then return false
+    // so that we can try using the legacy dialogs instead
+    bool openDialogCOM(std::function<void(const char*)> open,
+        bool multiple, bool canDir, const char * path)
+    {
+#define CHECK_HR(code) { HRESULT _hr = (code); if(!SUCCEEDED(_hr)) return true; }
+        // We check this explicitly, because we can also use GetOpenFileName
+        // which is available since forever, where as IFileDialog is Vista+
+        IFileOpenDialog *dialog = NULL;
+        HRESULT hr = (CoCreateInstance(CLSID_FileOpenDialog, 
+                          NULL, 
+                          CLSCTX_INPROC_SERVER, 
+                          IID_PPV_ARGS(&dialog)));
+        if(!SUCCEEDED(hr)) return false;
+        dust_defer( dialog->Release() );
+
+        {
+            DWORD dwFlags;
+            // Apparently we should always get default flags..
+            CHECK_HR(dialog->GetOptions(&dwFlags));
+            
+            if(multiple) dwFlags |= FOS_ALLOWMULTISELECT;
+            if(canDir) dwFlags |= FOS_PICKFOLDERS;
+            
+            CHECK_HR(dialog->SetOptions(dwFlags
+                | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR));
+        }
+        
+        if(path)
+        {
+            std::vector<WCHAR>  wpath;
+            utf8ToWide(wpath, path);
+            
+            IShellItem *initPath = 0;
+            // don't bail out if this fails, we'll just skip it
+            if(SUCCEEDED(
+                SHCreateItemFromParsingName(wpath.data(), 0, IID_PPV_ARGS(&initPath))))
+            {
+                dialog->SetDefaultFolder(initPath);
+                initPath->Release();
+            }
+        }
+    
+        // Show the dialog
+        CHECK_HR(dialog->Show(hwnd));
+
+        // item array
+        IShellItemArray *results;
+        CHECK_HR(dialog->GetResults(&results));
+        dust_defer( results->Release() );
+
+        DWORD nFiles;
+        CHECK_HR(results->GetCount(&nFiles));
+
+        for(int i = 0; i < nFiles; ++i)
+        {
+            IShellItem *item;
+            CHECK_HR(results->GetItemAt(i, &item));
+            dust_defer( item->Release() );
+            
+            PWSTR pszFilePath = NULL;
+            CHECK_HR(item->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath));
+            dust_defer( CoTaskMemFree(pszFilePath) );
+
+            // utf-8 dance: FIXME: refactor into a function
+    		std::vector<char> filename;
+            wideToUTF8(filename, pszFilePath);
+            open(filename.data());
+        }
+        return true;
+#undef CHECK_HR
+    }
     
 	void openDialog(std::function<void(const char*)> open,
         bool multiple, const char * path)
 	{
+        // if this returns false, IFileDialog is probably not available
+        if(openDialogCOM(open, multiple, false, path)) return;
+        
+        // So... let's try legacy instead
+        
         // 32k is the most the ANSI version will ever return
         std::vector<char>   filename(32*1024);
 
@@ -638,9 +819,24 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
 	void openDirDialog(
         std::function<void(const char*)> open, const char * path)
     {
-        // need to use SHBrowseForFolder
+        // if this returns false, IFileDialog is probably not available
+        if(openDialogCOM(open, false, true, path)) return;
+        
+        // So.. we need to use the horrible SHBrowseForFolder
+        char    filename[_MAX_PATH] = {};
+
+        BROWSEINFOA bi = {};
+        bi.hwndOwner = hwnd;
+        bi.pszDisplayName = filename; // assumed to be MAX_PATH long :P
+        bi.lpszTitle = "";
+        bi.ulFlags = BIF_USENEWUI;
+
+        if(SHBrowseForFolderA(&bi))
+        {
+            dust::debugPrint("folder: %s", filename);
+        }        
     }
-    
+
     struct Win32Menu : Menu
     {
         std::function<void(int)>    onSelect;
@@ -1336,19 +1532,13 @@ bool dust::clipboard::getText(std::string & out)
 	if(haveText)
 	{
 		std::vector<char> ubuf;
-		unsigned needSize = ::WideCharToMultiByte(CP_UTF8, 0,
-			(WCHAR*)&wbuf[0], wbuf.size() / sizeof(WCHAR), 0, 0, 0, 0);
+        wideToUTF8(ubuf, (WCHAR*)wbuf.data(), wbuf.size()/sizeof(WCHAR));
 		
-		if(needSize)
+		if(ubuf.size())
 		{
-			ubuf.resize(needSize);
-			::WideCharToMultiByte(CP_UTF8, 0,
-				(WCHAR*)&wbuf[0], wbuf.size() / sizeof(WCHAR), 
-				&ubuf[0], ubuf.size(), 0, 0);
-
 			// and then ... we do CRLF dance
 			bool crlf = false;
-			for(int i = 0; i < needSize; ++i)
+			for(int i = 0; i < ubuf.size(); ++i)
 			{
 				if(ubuf[i] == '\r') { crlf = true; continue; }
 				if(ubuf[i] == '\n') crlf = false;

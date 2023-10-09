@@ -2,6 +2,7 @@
 
 #include "dust/core/hash.h"
 #include "dust/render/rect.h"
+#include "dust/render/render_path.h"
 
 #include "font.h"
 
@@ -59,7 +60,7 @@ struct FontInstanceSTB : FontInstance
         // of small fonts while reducing render time of large ones
         // also cap the oversampling for very small sizes just in case
         int resX = 1 + (int)sizePx;
-        while(resX < 64 && oversampleX < 4)
+        while(resX < 96 && oversampleX < 3)
         {
             oversampleX <<= 1; resX <<= 1;
         }
@@ -112,8 +113,8 @@ struct FontInstanceSTB : FontInstance
         if(r.w() && r.h())
         {
             // add padding on both sides
-            r.x1 += 2*oversampleX;
-            r.y1 += 2*oversampleY;
+            r.x1 += 2*oversampleX + 2;
+            r.y1 += 2*oversampleY + 2;
         }
 
         // allocate
@@ -131,9 +132,9 @@ struct FontInstanceSTB : FontInstance
         stbtt_GetGlyphBox(&info, index, &xMin, &yMin, &xMax, &yMax);
         g->rsb = scale * (advanceW - lsb - (xMax - xMin));
 
-        // we offset by 1 full pixel
-        g->originX = r.x0;
-        g->originY = r.y0;
+        // we offset by 1 pixel to avoid clipping our stroke
+        g->originX = r.x0 - 1;
+        g->originY = r.y0 - 1;
 
         // check if glyph actually has a legit bitmap (eg. not space)
         if(r.w() && r.h())
@@ -154,14 +155,58 @@ struct FontInstanceSTB : FontInstance
 
             // prefiltering will shift the glyph by .5*(os-1)
             // so calculate inverse offsets
-            float shiftX = .5*(oversampleX - 1) / oversampleX;
-            float shiftY = .5*(oversampleY - 1) / oversampleY;
+            float shiftX = .5f*(oversampleX - 1) / oversampleX;
+            float shiftY = .5f*(oversampleY - 1) / oversampleY;
 
             // second parameter is tolerance, last two are invert and userdata
             // we always want our coordinate system with y going up, so invert
-            stbtt_Rasterize(&sbm, .25f, verts, nVerts,
+            if(0) stbtt_Rasterize(&sbm, .25f, verts, nVerts,
                 xSize, ySize, shiftX, shiftY,
                 r.x0-oversampleX, r.y0-oversampleY, 1, 0);
+            else
+            {
+                dust::Path p;
+                for(int i = 0; i < nVerts; ++i)
+                {
+                    float x = verts[i].x * scale;
+                    float y = verts[i].y * scale;
+                    switch(verts[i].type)
+                    {
+                    case STBTT_vmove:
+                        p.move(x, -y);
+                        break;
+                    case STBTT_vline:
+                        p.line(x, -y);
+                        break;
+                    case STBTT_vcurve:
+                        {
+                            float cx = verts[i].cx * scale;
+                            float cy = verts[i].cy * scale;
+                            p.quad(cx, -cy, x, -y);
+                        }
+                        break;
+                    }
+                }
+
+                Rect rr(0,0,r.w(),r.h());
+                memset(g->bitmap, 0, r.w() * r.h());
+
+                // stroke the path, to force visibility
+                // makes fonts a bit fatter, but whatever
+                dust::Path p2;
+                dust::TransformPath<dust::Path> tp(p2,
+                    oversampleX, 0, float(oversampleX) - r.x0 + shiftX,
+                    0, oversampleY, float(oversampleY) - r.y0 + shiftY);
+                // about 1/2 pixels?
+                p.stroke(tp, .25f);
+                
+                // copy the original path on top of the stroke
+                p.process(tp);
+                
+                // then just draw as usual
+                dust::renderPathRef(p2, rr,
+                    dust::FILL_NONZERO, g->bitmap, r.w(), 4, false);
+            }
 
             // free the vertices
             STBTT_free(verts, 0);

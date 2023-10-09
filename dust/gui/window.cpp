@@ -131,16 +131,9 @@ namespace dust
         if(focus) focus->ev_focus(true);
     }
 
-    void Window::redrawRect(const Rect & r, bool allowExtraPass)
+    void Window::redrawRect(const Rect & r)
     {
         Rect mr = r;
-
-        // see if we should merge with the default paintRect
-        if(!allowExtraPass || mr.overlap(paintRect))
-        {
-            mr.extend(paintRect);
-            allowExtraPass = false;
-        }
 
         // find overlaping existing rectangles,
         // merge them into the current rectangle
@@ -149,7 +142,9 @@ namespace dust
         unsigned i = 0;
         while(i < redrawRects.size())
         {
-            if(mr.overlap(redrawRects[i]))
+            // merge if overlapping.. or if no excess from merge
+            if(mr.overlap(redrawRects[i])
+            || 0 >= mr.unionDiff(redrawRects[i]))
             {
                 mr.extend(redrawRects[i]);
                 redrawRects[i] = redrawRects.back();
@@ -162,16 +157,8 @@ namespace dust
             else ++i;
         }
 
-        // add the rectangle
-        if(!allowExtraPass)
-        {
-            paintRect.set(mr);
-        }
-        else
-        {
-            // then add the merged rectangle
-            redrawRects.push_back(mr);
-        }
+        // then add the merged rectangle
+        redrawRects.push_back(mr);
     }
 
 #if DUST_USE_OPENGL
@@ -349,13 +336,7 @@ namespace dust
             //
             // we COULD skip this, if we tracked
             // previous layout for every control
-            redrawRect(wr, false);
-        }
-
-        if(!paintRect.isEmpty())
-        {
-            redrawRects.push_back(paintRect);
-            paintRect.clear();
+            redrawRect(wr);
         }
 
         (std::swap)(redrawRects, paintQueue);

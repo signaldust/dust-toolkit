@@ -146,18 +146,13 @@ namespace dust
             spacer.style.minSizeY = scrollbarSizePt;
 
             hscroll.setParent(&bottom);
-            hscroll.onScroll = [this]() { this->redraw(); };
-
             vscroll.setParent(this);
-            vscroll.onScroll = [this]() { this->redraw(); };
 
             // usually makes sense to fill area
             style.rule = LayoutStyle::FILL;
         }
 
-        // we don't actually draw anything, but we do lazy scroll-update
-        // this way mouse-overscrolling is not sensitive to event report rate
-        void render(RenderContext &)
+        void ev_update()
         {
             int x = hscroll.getPosition(), y = vscroll.getPosition();
             auto & cl = content.getLayout();
@@ -169,6 +164,8 @@ namespace dust
             cl.contentOffsetX = -x;
             cl.contentOffsetY = -y;
             content.updateWindowOffsets();
+
+            redraw();
         }
 
         void reflowChildren()

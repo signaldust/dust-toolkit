@@ -291,7 +291,7 @@ namespace dust
         ~Panel();
 
         // request layout recalculation
-        void reflow() { if(parent) parent->reflowChildren(); }
+        void reflow() { if(getWindow()) parent->reflowChildren(); }
 
         // compute minimum content size for a given DPI
         void computeSize(unsigned & szX, unsigned & szY, float dpi = 96)
@@ -319,16 +319,8 @@ namespace dust
             reflow();
         }
 
-        // request repaint - by default all redraws() are combined
-        // if allowExtraPass is true, then this redraw will only
-        // be combined with other redraws if the regions overlap
-        //
-        // NOTE: allowExtraPass should usually only be used on animated
-        // controls that could cause excessive repaints of large areas,
-        // since it adds additional overhead and results in more render()
-        // calls to parents that overlap with multiple disjoint rectangles
-        //
-        void redraw(bool allowExtraPass = false);
+        // request repaint
+        void redraw();
 
         // short-hand for setting keyboard focus to the control
         void focus();

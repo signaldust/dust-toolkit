@@ -18,7 +18,7 @@ namespace dust
         }
     }
 
-    void Panel::redraw(bool allowExtraPass)
+    void Panel::redraw()
     {
         if(!visible) return;
 
@@ -41,7 +41,7 @@ namespace dust
                 up = up->getParent();
             }
 
-            if(!r.isEmpty()) win->redrawRect(r, allowExtraPass);
+            if(!r.isEmpty()) win->redrawRect(r);
         }
     }
 

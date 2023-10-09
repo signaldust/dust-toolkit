@@ -116,7 +116,6 @@ namespace dust
             contentView.removeAllChildren();
             tabs[activeTab]->content.setParent(contentView);
             tabs[activeTab]->onSelect();
-            reflow();
         }
 
         // select next tab with wrap-around
@@ -185,6 +184,9 @@ namespace dust
             contentView.style.rule = LayoutStyle::FILL;
             // matches the tab offset on left
             contentView.style.padding.west = 1;
+            // don't want changing tabs changing rest of layout
+            contentView.style.canScrollX = true;
+            contentView.style.canScrollY = true;
 
             font.loadDefaultFont(7.f, 96.f);
             
@@ -199,6 +201,13 @@ namespace dust
         void ev_dpi(float dpi)
         {
             font.setDPI(dpi);
+        }
+
+        // Always do child layout locally
+        void reflowChildren()
+        {
+            layoutAsRoot(getWindow()->getDPI());
+            redraw();
         }
         
         // linking multiple panels into a circular list

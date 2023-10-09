@@ -60,6 +60,17 @@ namespace dust
             && y0 < other.y1 && other.y0 < y1;
         }
 
+        // returns area
+        int area() const { return (x1-x0)*(y1-y0); }
+
+        // returns area of union minus sum of areas
+        int unionDiff(Rect other) const
+        {
+            int sum = area() + other.area();
+            other.extend(*this);
+            return other.area() - sum;
+        }
+
         // this sets invalid region, such that
         // calling "extend" will just set the other rect
         void clear()

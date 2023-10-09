@@ -78,7 +78,7 @@ namespace dust
 
             monitorMouseDown.setParent(this);
             monitorMouseDown.onMouseDown =
-            [this]() { setParent(getParent()); redraw(true); };
+            [this]() { setParent(getParent()); redraw(); };
         }
 
         void clipPosition(float dpi)
@@ -114,14 +114,14 @@ namespace dust
 
             if(ev.type == MouseEvent::tMove && ev.button == 1)
             {
-                redraw(true);
+                redraw();
                 
                 layout.x += ev.x - dragX;
                 layout.y += ev.y - dragY;
 
                 clipPosition(getWindow()->getDPI());
 
-                redraw(true);
+                redraw();
             }
             
             return true;

@@ -230,7 +230,7 @@ protected:
                 auto nFiles = DragQueryFileW(hDrop, ~0u, 0, 0);
                 for(unsigned i = 0; i < nFiles; ++i)
                 {
-                    auto fnLen = DragQueryFileA(hDrop, i, 0, 0);
+                    auto fnLen = DragQueryFileW(hDrop, i, 0, 0);
                     if(!fnLen) continue;
     
                     buf.resize(fnLen+1);
@@ -268,7 +268,7 @@ static LRESULT CALLBACK wrapperWinProc(
     HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     
-    auto ctl = (Win32Callback *) GetWindowLongPtrA(hwnd, GWLP_USERDATA);
+    auto ctl = (Win32Callback *) GetWindowLongPtr(hwnd, GWLP_USERDATA);
     
     return ctl ? ctl->callback(hwnd, msg, wParam, lParam)
         : DefWindowProcW(hwnd, msg, wParam, lParam);
@@ -289,11 +289,8 @@ static struct WindowClass
     {
         if(winClassAtom) return;
 
-        WNDCLASSEX wc;
-
-        ZeroMemory(&wc, sizeof(WNDCLASSEXA));
-
-        wc.cbSize        = sizeof(WNDCLASSEXA);
+        WNDCLASSEX wc = {};
+        wc.cbSize        = sizeof(wc);
         wc.style         = 0; // CS_DBLCLKS;
         wc.lpfnWndProc   = wrapperWinProc;
         wc.cbClsExtra    = 0;
@@ -396,15 +393,14 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         else style |= WS_OVERLAPPEDWINDOW;
 
         windowClass.registerClass();
-        hwnd = CreateWindowExA(ex_style,
-            (LPSTR)windowClass.winClassAtom,
-            "<unnamed-window>", style,
-            CW_USEDEFAULT, CW_USEDEFAULT, w, h,
+        hwnd = CreateWindowExW(ex_style,
+            (LPWSTR)windowClass.winClassAtom,
+            L"", style, CW_USEDEFAULT, CW_USEDEFAULT, w, h,
             (HWND) parent, (HMENU) 0, hInstance, 0);
 
         if(!hwnd) debugBreak(); // should never fail
 
-        SetWindowLongPtrA(hwnd, GWLP_USERDATA, 
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, 
             (LONG_PTR) (Win32Callback*) this);
         delegate.win_created();
 
@@ -427,8 +423,8 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         hdc = GetDC(hwnd);
 
         // opengl pixel format
-        PIXELFORMATDESCRIPTOR pfd;
-        ZeroMemory(&pfd, sizeof(pfd));
+        PIXELFORMATDESCRIPTOR pfd = {};
+        
         pfd.nSize = sizeof(pfd);
         pfd.nVersion = 1;
         pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
@@ -547,17 +543,17 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
     
     void setTitle(const char * txt)
     {
-        SetWindowTextA(hwnd, txt);
+        SetWindowText(hwnd, to_u16(txt).c_str());
     }
     
     void confirmClose(
         Notify saveAndClose, Notify close, Notify cancel)
     {
         // need one extra for the null
-        std::vector<char> title(GetWindowTextLengthA(hwnd) + 1);
-        GetWindowTextA(hwnd, title.data(), title.size());
+        std::vector<wchar_t> title(GetWindowTextLengthW(hwnd) + 1);
+        GetWindowTextW(hwnd, title.data(), title.size());
         
-        int id = MessageBoxA(hwnd, "Save changes before closing?", title.data(),
+        int id = MessageBoxW(hwnd, L"Save changes before closing?", title.data(),
             MB_ICONWARNING | MB_YESNOCANCEL | MB_TASKMODAL);
 
         switch(id)
@@ -838,14 +834,14 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
     
         void addItem(const char * txt, unsigned id, bool enabled, bool tick)
         {
-            AppendMenuA(hMenu,
+            AppendMenu(hMenu,
                 MF_STRING | (!enabled ? MF_DISABLED : 0) | (tick ? MF_CHECKED : 0),
-                id, txt);
+                id, to_u16(txt).c_str());
         }
     
         void addSeparator()
         {
-            AppendMenuA(hMenu, MF_SEPARATOR, 0, 0);
+            AppendMenu(hMenu, MF_SEPARATOR, 0, 0);
         }
     
         void activate(int frameX, int frameY, bool alignRight)
@@ -1019,7 +1015,7 @@ LRESULT Win32Window::callback(
             if(getFocus()) getFocus()->ev_focus(active);
             // get focus if we're not losing activation
             if(active) SetFocus(hwnd);
-            DefWindowProcA(hwnd, msg, wParam, lParam);
+            DefWindowProc(hwnd, msg, wParam, lParam);
         }
         break;
 
@@ -1135,8 +1131,8 @@ LRESULT Win32Window::callback(
             sendMouseEvent(ev);
 
             // track WM_MOUSELEAVE
-            TRACKMOUSEEVENT tme;
-            ZeroMemory(&tme, sizeof(tme));
+            TRACKMOUSEEVENT tme = {};
+            
             tme.cbSize = sizeof(tme);
             tme.dwFlags = TME_LEAVE;
             tme.hwndTrack = hwnd;

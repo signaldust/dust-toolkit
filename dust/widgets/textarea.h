@@ -1185,20 +1185,19 @@ namespace dust
 
         void saveFile(const std::string & path)
         {
-            // generate a temporary filename
-            std::string tmp = path + ".$tmp";
-#ifdef _WIN32
-			while(!_access(tmp.c_str(), 0))
-#else
-			while(!access(tmp.c_str(), F_OK))
-#endif
-            {
-                tmp += "$";
-            }
-			
             bool failed = false;
-
+            
+            // generate a temporary filename
+#ifdef _WIN32
+            std::wstring tmp = to_u16(path) + L".$tmp";
+            while(!_waccess(tmp.c_str(), 0)) { tmp += L"$"; }
+            FILE * file = _wfopen(tmp.c_str(), L"wb");
+#else
+            std::string tmp = path + ".$tmp";
+            while(!access(tmp.c_str(), F_OK)) { tmp += "$"; }
             FILE * file = fopen(tmp.c_str(), "wb");
+#endif
+
             if(!file) return;
 
             for(auto ch : buffer)
@@ -1222,34 +1221,35 @@ namespace dust
             {
                 chmod(tmp.c_str(), oldStat.st_mode);
             }
-			
+            
             // we managed to save the file, now fix the name
             if(!rename(tmp.c_str(), path.c_str()))
             {
                 buffer.setNotModified();
             }
 #else
-			// on Windows, do a rename dance
-			// another temp filename
-			std::string tmp2(tmp);
-			tmp2 += ".old";
-			while(!_access(tmp2.c_str(), 0))
-			{
-				tmp2 += "$";
-			}
+            // on Windows, do a rename dance
+            // another temp filename
+            std::wstring tmp2(tmp);
+            tmp2 += L".old";
+            while(!_waccess(tmp2.c_str(), 0))
+            {
+                tmp2 += L"$";
+            }
 
-            bool oldFile = !_access(path.c_str(), 0);
+            auto u16path = to_u16(path);
+            bool oldFile = !_waccess(u16path.c_str(), 0);
 
             // this is less than ideal, but without atomic renames
             // there isn't necessarily any better option?
-    		if((!oldFile || !rename(path.c_str(), tmp2.c_str()))
-    		&& !rename(tmp.c_str(), path.c_str()))
+            if((!oldFile || !_wrename(u16path.c_str(), tmp2.c_str()))
+            && !_wrename(tmp.c_str(), u16path.c_str()))
             {
                 buffer.setNotModified();
             }
             
             // this might fail if in use, but that's fine
-    		if(oldFile) _unlink(tmp2.c_str());
+            if(oldFile) _wunlink(tmp2.c_str());
 #endif
         }
 

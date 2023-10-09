@@ -333,22 +333,23 @@ struct FileBrowser : dust::Panel
     void updateRoot()
     {
 #ifdef _WIN32
-        char rootPath[MAX_PATH+1];
-        const char * cwd = _fullpath(rootPath, root.path.c_str(), MAX_PATH);
-        auto * basename = strrchr(cwd, '\\');
-        if(basename) root.label = basename + 1;
+        wchar_t rootPath[MAX_PATH+1];
+        const wchar_t * cwd = _wfullpath(rootPath, to_u16(root.path).c_str(), MAX_PATH);
+        auto * basename = wcsrchr(cwd, '\\');
+        if(basename) root.label = to_u8(basename + 1);
+        root.path = to_u8(cwd);
 #else
         char rootPath[PATH_MAX];
         const char * cwd = realpath(root.path.c_str(), rootPath);
         auto * basename = strrchr(cwd, '/');
         if(basename) root.label = basename + 1;
-#endif
         root.path = cwd;
+#endif
         root.clear();
 
         // set current working directory
 #ifdef _WIN32
-        _chdir(cwd);
+        _wchdir(cwd);
 #else
         chdir(cwd);
 #endif
@@ -362,8 +363,7 @@ static time_t getTimeForPath(const std::string & path)
 
 #ifdef _WIN32
     struct _stat64 statBuf;
-    // FIXME: wchar version with conversions?
-    if(_stat64(path.c_str(), &statBuf)) return 0; // error
+    if(_wstat64(to_u16(path).c_str(), &statBuf)) return 0; // error
     
     return statBuf.st_mtime;
 #else
@@ -422,9 +422,9 @@ struct Document : dust::Panel
                 onSaveAs();
                 doSave(false, onDone);
 #ifdef _WIN32
-                char absPath[MAX_PATH+1];
-                _fullpath(absPath, path.c_str(), MAX_PATH);
-                path = absPath;
+                wchar_t absPath[MAX_PATH+1];
+                _wfullpath(absPath, to_u16(path).c_str(), MAX_PATH);
+                path = to_u8(absPath);
 #else
                 char absPath[PATH_MAX];
                 path = realpath(path.c_str(), absPath);
@@ -1018,8 +1018,9 @@ struct AppWindow : dust::Panel
     void openDocument(const std::string & path, DocumentPanel * inPanel = 0)
     {
 #ifdef _WIN32
-        char absPath[MAX_PATH+1];
-        _fullpath(absPath, path.c_str(), MAX_PATH);
+        wchar_t w_absPath[MAX_PATH+1];
+        _wfullpath(w_absPath, to_u16(path).c_str(), MAX_PATH);
+        auto absPath = to_u8(w_absPath);
 #else
         char absPath[PATH_MAX];
         realpath(path.c_str(), absPath);

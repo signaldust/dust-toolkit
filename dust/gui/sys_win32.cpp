@@ -10,7 +10,8 @@
 
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "ole32.lib")
-    
+
+#define UNICODE
 #include <windows.h>
 #include <commctrl.h>
 #include <shlobj.h>     // for browser select (using ugly old dialog, whatever)
@@ -53,6 +54,7 @@ std::string dust::to_u8(wchar_t const * in, size_t inLen)
     if(needSize)
     {
         ::WideCharToMultiByte(CP_UTF8, 0, in, inLen, &out[0], out.size(), 0, 0);
+        if(inLen == -1 && !out.back()) out.pop_back(); // don't need the null
     }
     return out;
 }
@@ -64,6 +66,7 @@ std::wstring dust::to_u16(char const * in, size_t inLen)
     if(needSize)
     {
         ::MultiByteToWideChar(CP_UTF8, 0, in, inLen, &out[0], out.size());
+        if(inLen == -1 && !out.back()) out.pop_back(); // don't need the null
     }
     return out;
 }
@@ -222,18 +225,18 @@ protected:
             
             if(panel)
             {
-                std::vector<char>   buf;
+                std::wstring buf;
                 // get number of files
-                auto nFiles = DragQueryFileA(hDrop, ~0u, 0, 0);
+                auto nFiles = DragQueryFileW(hDrop, ~0u, 0, 0);
                 for(unsigned i = 0; i < nFiles; ++i)
                 {
                     auto fnLen = DragQueryFileA(hDrop, i, 0, 0);
                     if(!fnLen) continue;
     
                     buf.resize(fnLen+1);
-                    if(!DragQueryFileA(hDrop, i, buf.data(), buf.size())) continue;
+                    if(!DragQueryFileW(hDrop, i, &buf[0], buf.size())) continue;
     
-                    handler.drag_drop(panel, buf.data());
+                    handler.drag_drop(panel, dust::to_u8(buf).c_str());
                 }
             }
             DragFinish(hDrop);
@@ -260,7 +263,7 @@ struct Win32Callback
     virtual LRESULT callback(HWND, UINT, WPARAM, LPARAM) = 0;
 };
 
-static const char winClassName[] = "Win32Wrapper";
+static const wchar_t winClassName[] = L"Win32Wrapper";
 static LRESULT CALLBACK wrapperWinProc(
     HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -268,7 +271,7 @@ static LRESULT CALLBACK wrapperWinProc(
     auto ctl = (Win32Callback *) GetWindowLongPtrA(hwnd, GWLP_USERDATA);
     
     return ctl ? ctl->callback(hwnd, msg, wParam, lParam)
-        : DefWindowProcA(hwnd, msg, wParam, lParam);
+        : DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 // automatic singleton to register/unregister windowclass on load/unload
@@ -286,7 +289,7 @@ static struct WindowClass
     {
         if(winClassAtom) return;
 
-        WNDCLASSEXA wc;
+        WNDCLASSEX wc;
 
         ZeroMemory(&wc, sizeof(WNDCLASSEXA));
 
@@ -300,10 +303,10 @@ static struct WindowClass
         wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
         wc.hbrBackground = NULL;
         wc.lpszMenuName  = NULL;
-        wc.lpszClassName = (LPSTR) winClassName;
+        wc.lpszClassName = winClassName;
         wc.hIconSm       = LoadIcon(NULL, IDI_APPLICATION);
 
-        winClassAtom = RegisterClassExA(&wc);
+        winClassAtom = RegisterClassExW(&wc);
         if(!winClassAtom)
         {
             MessageBoxA(NULL, "Couldn't create a wrapper windowclass.",
@@ -322,7 +325,7 @@ static struct WindowClass
     {
         if(winClassAtom)
         {
-            UnregisterClassA((LPSTR) winClassAtom, hInstance);
+            UnregisterClassW((LPWSTR) winClassAtom, hInstance);
         }
 
         // when unloading the class
@@ -639,7 +642,7 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
     {
         if(saveAsDialogCOM(out, save, cancel, path)) return;
 
-        char    filename[_MAX_PATH] = {};
+        wchar_t filename[_MAX_PATH] = {};
 
         OPENFILENAME ofn = {};
         ofn.lStructSize = sizeof(ofn);
@@ -649,13 +652,13 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         ofn.lpstrFile = filename;
         ofn.nMaxFile = sizeof(filename);
 
-        if(path) strcpy(filename, path);
+        if(path) wcscpy(filename, to_u16(path).c_str());
 
         ofn.lpstrFileTitle = 0;
         ofn.nMaxFileTitle = 0;
 
         // filter
-        ofn.lpstrFilter = "All files (*.*)\0*.*\0";
+        ofn.lpstrFilter = L"All files (*.*)\0*.*\0";
         ofn.nFilterIndex = 1;
 
         ofn.Flags = OFN_PATHMUSTEXIST;
@@ -665,9 +668,9 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         // if non-zero, user clicked OK
         // FIXME: should really use Unicode, but we need a file API then
         // because we can't just send utf-8 to fopen() and friends
-        if(GetSaveFileNameA(&ofn))
+        if(GetSaveFileName(&ofn))
         {
-            out = filename;
+            out = to_u8(filename);
             save();
         }
         else
@@ -752,9 +755,7 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         if(openDialogCOM(open, multiple, false, path)) return;
         
         // So... let's try legacy instead
-        
-        // 32k is the most the ANSI version will ever return
-        std::vector<char>   filename(32*1024);
+        std::vector<wchar_t>   filename(32*1024);
 
         OPENFILENAME ofn = {};
         ofn.lStructSize = sizeof(ofn);
@@ -764,13 +765,13 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         ofn.lpstrFile = filename.data();
         ofn.nMaxFile = filename.size();
 
-        if(path) strcpy(filename.data(), path);
+        if(path) wcscpy(filename.data(), to_u16(path).c_str());
 
         ofn.lpstrFileTitle = 0;
         ofn.nMaxFileTitle = 0;
 
         // filter
-        ofn.lpstrFilter = "All files (*.*)\0*.*\0";
+        ofn.lpstrFilter = L"All files (*.*)\0*.*\0";
         ofn.nFilterIndex = 1;
 
         ofn.Flags = OFN_PATHMUSTEXIST | OFN_EXPLORER;
@@ -781,7 +782,7 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         // if non-zero, user clicked OK
         // FIXME: should really use Unicode, but we need a file API then
         // because we can't just send utf-8 to fopen() and friends
-        if(GetOpenFileNameA(&ofn))
+        if(GetOpenFileName(&ofn))
         {
             // With multiselect we get directory followed by null
             // followed by file strings with double null at the end
@@ -794,14 +795,14 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
                 int offset = ofn.nFileOffset;
                 while(filename[ofn.nFileOffset])
                 {
-                    open(filename.data());
-                    offset += strlen(filename.data() + offset) + 1;
+                    open(to_u8(filename.data()).c_str());
+                    offset += wcslen(filename.data() + offset) + 1;
                     // inplace copy to after the directory
-                    strcpy(filename.data() + ofn.nFileOffset,
+                    wcscpy(filename.data() + ofn.nFileOffset,
                             filename.data() + offset);
                 }
             }
-            else open(filename.data());
+            else open(to_u8(filename.data()).c_str());
         }
     }
 
@@ -812,17 +813,17 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         if(openDialogCOM(open, false, true, path)) return;
         
         // So.. we need to use the horrible SHBrowseForFolder
-        char    filename[_MAX_PATH] = {};
+        wchar_t filename[_MAX_PATH] = {};
 
-        BROWSEINFOA bi = {};
+        BROWSEINFO bi = {};
         bi.hwndOwner = hwnd;
         bi.pszDisplayName = filename; // assumed to be MAX_PATH long :P
-        bi.lpszTitle = "";
+        bi.lpszTitle = L"";
         bi.ulFlags = BIF_USENEWUI;
 
-        if(SHBrowseForFolderA(&bi))
+        if(SHBrowseForFolder(&bi))
         {
-            dust::debugPrint("folder: %s", filename);
+            open(to_u8(filename).c_str());
         }        
     }
 

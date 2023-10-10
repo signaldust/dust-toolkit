@@ -130,9 +130,7 @@ struct WinDropHandler
 {
     virtual bool drag_move(int x, int y) = 0;
     virtual void drag_exit() = 0;
-
     virtual dust::Panel * drag_get_panel(int x, int y) = 0;
-    virtual void drag_drop(dust::Panel * panel, const char * path) = 0;
     
 protected:
     ~WinDropHandler() {}
@@ -234,7 +232,7 @@ protected:
                     buf.resize(fnLen+1);
                     if(!DragQueryFileW(hDrop, i, &buf[0], buf.size())) continue;
     
-                    handler.drag_drop(panel, dust::to_u8(buf).c_str());
+                    panel->ev_drop_file(dust::to_u8(buf).c_str());
                 }
             }
             DragFinish(hDrop);
@@ -405,12 +403,9 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
 
         // we need this for drag&drop but it also gets us COM for openDir
         OleInitialize(NULL);
-        if(delegate.win_can_dropfiles())
-        {
-            iDropTarget = new WinDropTarget(*this);
-            CoLockObjectExternal(iDropTarget, true, true);
-            RegisterDragDrop(hwnd, iDropTarget);
-        }
+        iDropTarget = new WinDropTarget(*this);
+        CoLockObjectExternal(iDropTarget, true, true);
+        RegisterDragDrop(hwnd, iDropTarget);
 
         // this will fix title-bar
         if(!parent) resize(w, h);
@@ -504,10 +499,6 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         
         if(!panel || !panel->ev_accept_files()) return 0;
         return panel;        
-    }
-    void drag_drop(dust::Panel * panel, const char * path)
-    {
-        delegate.win_drop_file(panel, path);
     }
     
     void closeWindow() { DestroyWindow(hwnd); }

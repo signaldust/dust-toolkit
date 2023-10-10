@@ -537,6 +537,8 @@ struct NoDocument : dust::Panel
 typedef dust::TabPanel<Document, NoDocument> DocumentPanel;
 struct DocumentPanelEx : DocumentPanel
 {
+    std::function<void(const char*)>    onDropFile;
+
     DocumentPanelEx()
     {
         hoverFiles.setVisible(false);
@@ -564,6 +566,8 @@ struct DocumentPanelEx : DocumentPanel
     }
 
     bool ev_accept_files() { return true; }
+
+    void ev_drop_file(const char * filename) { onDropFile(filename); }
   
 private:
     struct Overlay : dust::Panel
@@ -1268,14 +1272,11 @@ struct AppWindow : dust::Panel
 
         panel0.noContent.background.onClick = [this](){ newDocument(panel0); };
         panel1.noContent.background.onClick = [this](){ newDocument(panel1); };
-    }
 
-    void dropFile(Panel * panel, const char * path)
-    {
-        if(panel == &panel0) { openDocument(path, &panel0); return; }
-        if(panel == &panel1) { openDocument(path, &panel1); return; }
-        // anything else, open in active panel
-        openDocument(path);
+        panel0.onDropFile = [this](const char * path)
+            { openDocument(path, &panel0); };
+        panel1.onDropFile = [this](const char * path)
+            { openDocument(path, &panel1); };
     }
 };
 
@@ -1317,13 +1318,6 @@ struct Dusted : dust::Application
 
         appWin.setParent(win);
         appWin.setWindowTitle();
-    }
-
-    bool win_can_dropfiles() { return true; }
-
-    void win_drop_file(Panel * panel, const char * path)
-    {
-        appWin.dropFile(panel, path);
     }
 
     bool win_closing()

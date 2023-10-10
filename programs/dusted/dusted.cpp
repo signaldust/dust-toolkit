@@ -40,6 +40,11 @@
 #include <direct.h>
 #endif
 
+// FIXME: figure out a sensible way to configure this
+#ifndef DUSTED_DEFAULT_SCALE
+#define DUSTED_DEFAULT_SCALE 100
+#endif
+
 // This is a temporary hack of a treeview..
 // We really want to replace it with something better.
 //
@@ -1288,7 +1293,7 @@ struct Dusted : dust::Application
     {
         dust::Window * win = dust::createWindow(*this, 0, 16*72, 9*72);
         win->setMinSize(16*32, 9*32);
-        win->setScale(100);
+        win->setScale(DUSTED_DEFAULT_SCALE);
         win->toggleMaximize();
 
 #ifdef _WIN32

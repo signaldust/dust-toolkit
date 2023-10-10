@@ -994,7 +994,11 @@ namespace dust
         /////////////////////
         void loadFile(const std::string & path)
         {
+#ifdef _WIN32
+            FILE * f = _wfopen(to_u16(path).c_str(), L"rb");
+#else
             FILE * f = fopen(path.c_str(), "rb");
+#endif
             if(!f)
             {
                 debugPrint("TextBuffer: fopen() failed\n");

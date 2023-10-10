@@ -198,30 +198,32 @@ namespace dust
             isOpen = true;
             
 #ifdef _WIN32
-			WIN32_FIND_DATA data;
-			HANDLE hFind = FindFirstFile((path+"/*").c_str(), &data);
-
-			if ( hFind != INVALID_HANDLE_VALUE ) {
-				do {
-					if(data.cFileName[0] == '.') continue;
+            WIN32_FIND_DATA data;
+            HANDLE hFind = FindFirstFileW(to_u16(path+"\\*").c_str(), &data);
+            
+            if ( hFind != INVALID_HANDLE_VALUE ) {
+                do {
+                    auto filename = to_u8(data.cFileName);
+                    
+                    if(filename[0] == '.') continue;
                     // ignore the temp files textarea sometimes leaves behind
-                    if(strstr(data.cFileName, ".$tmp")) continue;
-				
-					std::string newPath = path + '/' + data.cFileName;
+                    if(strstr(filename.c_str(), ".$tmp")) continue;
+                
+                    std::string newPath = path + '\\' + filename;
 
-					if(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-					{
-						subDirs.emplace_back(
-							new TreeViewDir(newPath, data.cFileName, level + 1));
-					}
-					else
-					{
-						files.emplace_back(
-							new TreeViewNode(newPath, data.cFileName, level + 1));
-					}
-				} while (FindNextFile(hFind, &data));
-				FindClose(hFind);
-			}
+                    if(data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                    {
+                        subDirs.emplace_back(
+                            new TreeViewDir(newPath, filename, level + 1));
+                    }
+                    else
+                    {
+                        files.emplace_back(
+                            new TreeViewNode(newPath, filename, level + 1));
+                    }
+                } while (FindNextFileW(hFind, &data));
+                FindClose(hFind);
+            }
 #else
             DIR * dir = opendir(path.c_str());
             if(!dir) return;
@@ -331,22 +333,23 @@ struct FileBrowser : dust::Panel
     void updateRoot()
     {
 #ifdef _WIN32
-        char rootPath[MAX_PATH+1];
-		const char * cwd = _fullpath(rootPath, root.path.c_str(), MAX_PATH);
-        auto * basename = strrchr(cwd, '\\');
-        if(basename) root.label = basename + 1;
+        wchar_t rootPath[MAX_PATH+1];
+        const wchar_t * cwd = _wfullpath(rootPath, to_u16(root.path).c_str(), MAX_PATH);
+        auto * basename = wcsrchr(cwd, '\\');
+        if(basename) root.label = to_u8(basename + 1);
+        root.path = to_u8(cwd);
 #else
         char rootPath[PATH_MAX];
         const char * cwd = realpath(root.path.c_str(), rootPath);
         auto * basename = strrchr(cwd, '/');
         if(basename) root.label = basename + 1;
-#endif
         root.path = cwd;
+#endif
         root.clear();
 
         // set current working directory
 #ifdef _WIN32
-        _chdir(cwd);
+        _wchdir(cwd);
 #else
         chdir(cwd);
 #endif
@@ -360,10 +363,9 @@ static time_t getTimeForPath(const std::string & path)
 
 #ifdef _WIN32
     struct _stat64 statBuf;
-	// FIXME: wchar version with conversions?
-    if(_stat64(path.c_str(), &statBuf)) return 0; // error
-	
-	return statBuf.st_mtime;
+    if(_wstat64(to_u16(path).c_str(), &statBuf)) return 0; // error
+    
+    return statBuf.st_mtime;
 #else
     struct stat statBuf;
     if(stat(path.c_str(), &statBuf)) return 0; // error
@@ -420,9 +422,9 @@ struct Document : dust::Panel
                 onSaveAs();
                 doSave(false, onDone);
 #ifdef _WIN32
-				char absPath[MAX_PATH+1];
-				_fullpath(absPath, path.c_str(), MAX_PATH);
-				path = absPath;
+                wchar_t absPath[MAX_PATH+1];
+                _wfullpath(absPath, to_u16(path).c_str(), MAX_PATH);
+                path = to_u8(absPath);
 #else
                 char absPath[PATH_MAX];
                 path = realpath(path.c_str(), absPath);
@@ -900,7 +902,7 @@ struct AppWindow : dust::Panel
             return;
         }
         
-		const char * cwd = browser.root.path.c_str();
+        const char * cwd = browser.root.path.c_str();
         
         // strip common prefix
         while(*path && *cwd && *path == *cwd) { ++path; ++cwd; }
@@ -1016,8 +1018,9 @@ struct AppWindow : dust::Panel
     void openDocument(const std::string & path, DocumentPanel * inPanel = 0)
     {
 #ifdef _WIN32
-		char absPath[MAX_PATH+1];
-		_fullpath(absPath, path.c_str(), MAX_PATH);
+        wchar_t w_absPath[MAX_PATH+1];
+        _wfullpath(w_absPath, to_u16(path).c_str(), MAX_PATH);
+        auto absPath = to_u8(w_absPath);
 #else
         char absPath[PATH_MAX];
         realpath(path.c_str(), absPath);
@@ -1252,13 +1255,14 @@ struct Dusted : dust::Application
     {
         dust::Window * win = dust::createWindow(*this, 0, 16*72, 9*72);
         win->setMinSize(16*32, 9*32);
+        win->setScale(100);
         win->toggleMaximize();
 
 #ifdef _WIN32
-        int iconsize = 32;
+        int iconsize = GetSystemMetrics(SM_CXICON);
 #endif
 #ifdef __APPLE__
-        int iconsize = 128; // macos scales fine, so can make this large
+        int iconsize = 128; // macos scales fine, so can make this "large"
 #endif
         dust::Surface sIcon(iconsize, iconsize);
         dust::RenderContext rcIcon(sIcon);

@@ -108,9 +108,7 @@ struct Win32WheelHook
     void installHook(HWND hwnd)
     {
         // Don't install a hook if there's a debugger (freezes stuff on break)
-        // and don't bother if this is a top-level window (don't need one).
-        if(mouseHookActive || IsDebuggerPresent()
-        || !(GetWindowLong(hwnd, GWL_STYLE) & WS_CHILD)) return;
+        if(mouseHookActive || IsDebuggerPresent()) return;
         
         mouseHookInstance = (HINSTANCE) GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
         hWheelHook = SetWindowsHookEx( WH_MOUSE_LL, 
@@ -374,6 +372,7 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
 #endif
 
     LPDROPTARGET iDropTarget = 0;
+    unsigned    sysWheelScale = 3;  // default is 3
     
     // size info as set by client
     unsigned    minSizeX, minSizeY;
@@ -418,6 +417,9 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         
         ::SetTimer(hwnd, 0, 1000/60, 0);
 
+        // get system wheel scaling
+        SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &sysWheelScale, 0);
+        
 #if DUST_USE_OPENGL
 
         hdc = GetDC(hwnd);
@@ -1243,7 +1245,8 @@ LRESULT Win32Window::callback(
             float delta = GET_WHEEL_DELTA_WPARAM(wParam) / (float) WHEEL_DELTA;
 
             // in practice, we want to scroll a bit more than a pixel per tick
-            delta *= 32;
+            // but we'll convert to pixels 'cos "lines" is a poor metric
+            delta *= 16 * sysWheelScale;
 
             MouseEvent ev(MouseEvent::tScroll, p.x,p.y, 0, 0, keymods);
             ev.scrollY = delta;

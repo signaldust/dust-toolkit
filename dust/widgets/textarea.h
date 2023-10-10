@@ -49,6 +49,9 @@ namespace dust
         // called when something (even cursor position) changes
         Notify  onUpdate = doNothing;
 
+        // called on right click
+        std::function<void(MouseEvent const &)> onContextMenu = doNothing;
+
         Font    _font;
         
         bool    showLineNumbers = true;
@@ -879,6 +882,10 @@ namespace dust
             buffer.doNewline(indent);
         }
 
+        void doCut() { buffer.doCut(); redraw(); }
+        void doCopy() { buffer.doCopy(); redraw(); }
+        void doPaste() { buffer.doPaste(); redraw(); }
+
         void ev_focus(bool gained)
         {
             if(gained) onFocus();
@@ -957,6 +964,12 @@ namespace dust
                 
                 exposePoint(ev.x, ev.y);
                 return true;
+            }
+
+            if(ev.type == MouseEvent::tDown && ev.button == 2)
+            {
+                // ask for context menu
+                onContextMenu(ev); return true;
             }
 
             return false;

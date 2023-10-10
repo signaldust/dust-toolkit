@@ -388,7 +388,7 @@ struct Document : dust::Panel
     // used to avoid accidental loss of data
     time_t              mtimeFile;
 
-    // FIXME: move save handling to appwindow?
+    // used to notify appwindow to redraw tab strips
     dust::Notify        onSaveAs;
 
     Document()
@@ -399,6 +399,38 @@ struct Document : dust::Panel
         scroll.setOverscroll(0, .5f);
 
         editor.setParent(scroll.getContent());
+
+        editor.onContextMenu = [this](MouseEvent const & ev)
+        {
+            enum
+            {
+                idCut, idCopy, idPaste,
+                idSave, idSaveAs
+            };
+            auto onSelect = [this](unsigned id)
+            {
+                switch(id)
+                {
+                case idCut: editor.doCut(); break;
+                case idCopy: editor.doCopy(); break;
+                case idPaste: editor.doPaste(); break;
+    
+                case idSave: doSave(false, dust::doNothing); break;
+                case idSaveAs: doSave(true, dust::doNothing); break;
+                }
+            };
+    
+            auto * menu = getWindow()->createMenu(onSelect);
+            menu->addItem("Cut", idCut);
+            menu->addItem("Copy", idCopy);
+            menu->addItem("Paste", idPaste);
+            menu->addSeparator();
+            menu->addItem("Save", idSave);
+            menu->addItem("Save As...", idSaveAs);
+            menu->activate(
+                ev.x + editor.getLayout().windowOffsetX,
+                ev.y + editor.getLayout().windowOffsetY);
+        };
     }
 
     void selectSyntax()

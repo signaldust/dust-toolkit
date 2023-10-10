@@ -720,26 +720,26 @@ namespace dust
             {
                 x += rc.drawChar(font, utf8::invalid,
                     paint::Color(theme.fgColor), lineMargin + x, y);
-
-                if(bytePos == selectEnd)
-                {
-                    int nextX = (int)(x + lineMargin
-                        + font->getCharAdvanceW(utf8::invalid));
-
-                    if(darkText)
-                        rc.fillRect<blend::Multiply>(
-                            paint::Color(selectColor),
-                            selectX, (int)(y - font->getAscent()),
-                            nextX - selectX, lineHeight);
-                    else
-                        rc.fillRect<blend::Screen>(
-                            paint::Color(selectColor),
-                            selectX, (int)(y - font->getAscent()),
-                            nextX - selectX, lineHeight);
-                }
             }
-
-            if(buffer.getCursor() == bytePos)
+            
+            if(inSelection)
+            {
+                if(darkText)
+                    rc.fillRect<blend::Multiply>(
+                        paint::Color(selectColor),
+                        selectX, (int)(y - font->getAscent()),
+                        int(x + lineMargin) - selectX, lineHeight);
+                else
+                    rc.fillRect<blend::Screen>(
+                        paint::Color(selectColor),
+                        selectX, (int)(y - font->getAscent()),
+                        int(x + lineMargin) - selectX, lineHeight);
+            }
+            
+            if(cursorThisLine)
+                drawCursor(cursorX+lineMargin,
+                    (int)(y - font->getAscent()));
+            else if(buffer.getCursor() == bytePos)
             {
                 drawCursor(x+lineMargin, (int)(y - font->getAscent()));
                 cursorThisLine = true;

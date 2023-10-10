@@ -1255,7 +1255,7 @@ struct Dusted : dust::Application
     {
         dust::Window * win = dust::createWindow(*this, 0, 16*72, 9*72);
         win->setMinSize(16*32, 9*32);
-        win->setScale(125);
+        win->setScale(100);
         win->toggleMaximize();
 
 #ifdef _WIN32

@@ -17,7 +17,7 @@ namespace dust
         Surface(unsigned w = 0, unsigned h = 0, unsigned pAlign = 1)
         : pixels(0), szX(0), szY(0) { validate(w, h, pAlign); }
 
-        // create a new surface, loading an image file
+        // create a new surface, loading an image file (using stb_image)
         Surface(const std::vector<char> & fileContents);
 
         // allow move construction
@@ -90,6 +90,10 @@ namespace dust
 
         // in-place wrapper
         void blur(float radius) { blur(*this, radius); }
+
+        // in-place fade edges (smoothstep with adjustable radius)
+        // this can be used to cleanup blur
+        void fadeEdges(float radius);
 
         // replace color with "diffuse light"
         // uses alpha channel as the height

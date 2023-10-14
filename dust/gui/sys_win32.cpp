@@ -108,9 +108,7 @@ struct Win32WheelHook
     void installHook(HWND hwnd)
     {
         // Don't install a hook if there's a debugger (freezes stuff on break)
-        // and don't bother if this is a top-level window (don't need one).
-        if(mouseHookActive || IsDebuggerPresent()
-        || !(GetWindowLong(hwnd, GWL_STYLE) & WS_CHILD)) return;
+        if(mouseHookActive || IsDebuggerPresent()) return;
         
         mouseHookInstance = (HINSTANCE) GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
         hWheelHook = SetWindowsHookEx( WH_MOUSE_LL, 
@@ -132,9 +130,7 @@ struct WinDropHandler
 {
     virtual bool drag_move(int x, int y) = 0;
     virtual void drag_exit() = 0;
-
     virtual dust::Panel * drag_get_panel(int x, int y) = 0;
-    virtual void drag_drop(dust::Panel * panel, const char * path) = 0;
     
 protected:
     ~WinDropHandler() {}
@@ -236,7 +232,7 @@ protected:
                     buf.resize(fnLen+1);
                     if(!DragQueryFileW(hDrop, i, &buf[0], buf.size())) continue;
     
-                    handler.drag_drop(panel, dust::to_u8(buf).c_str());
+                    panel->ev_drop_file(dust::to_u8(buf).c_str());
                 }
             }
             DragFinish(hDrop);
@@ -374,6 +370,7 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
 #endif
 
     LPDROPTARGET iDropTarget = 0;
+    unsigned    sysWheelScale = 3;  // default is 3
     
     // size info as set by client
     unsigned    minSizeX, minSizeY;
@@ -406,18 +403,18 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
 
         // we need this for drag&drop but it also gets us COM for openDir
         OleInitialize(NULL);
-        if(delegate.win_can_dropfiles())
-        {
-            iDropTarget = new WinDropTarget(*this);
-            CoLockObjectExternal(iDropTarget, true, true);
-            RegisterDragDrop(hwnd, iDropTarget);
-        }
+        iDropTarget = new WinDropTarget(*this);
+        CoLockObjectExternal(iDropTarget, true, true);
+        RegisterDragDrop(hwnd, iDropTarget);
 
         // this will fix title-bar
         if(!parent) resize(w, h);
         
         ::SetTimer(hwnd, 0, 1000/60, 0);
 
+        // get system wheel scaling
+        SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &sysWheelScale, 0);
+        
 #if DUST_USE_OPENGL
 
         hdc = GetDC(hwnd);
@@ -502,10 +499,6 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         
         if(!panel || !panel->ev_accept_files()) return 0;
         return panel;        
-    }
-    void drag_drop(dust::Panel * panel, const char * path)
-    {
-        delegate.win_drop_file(panel, path);
     }
     
     void closeWindow() { DestroyWindow(hwnd); }
@@ -1243,7 +1236,8 @@ LRESULT Win32Window::callback(
             float delta = GET_WHEEL_DELTA_WPARAM(wParam) / (float) WHEEL_DELTA;
 
             // in practice, we want to scroll a bit more than a pixel per tick
-            delta *= 32;
+            // but we'll convert to pixels 'cos "lines" is a poor metric
+            delta *= 16 * sysWheelScale;
 
             MouseEvent ev(MouseEvent::tScroll, p.x,p.y, 0, 0, keymods);
             ev.scrollY = delta;

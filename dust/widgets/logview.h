@@ -31,9 +31,11 @@ namespace dust
         void clear()
         { 
             buffer.clear();
-            stopScroll = false;
+            noScroll = false;
             recalculateSize(); 
         }
+
+        void stopScroll() { noScroll = true; }
         
         void append(const char * txt, unsigned n)
         {
@@ -120,7 +122,7 @@ namespace dust
             reflow();   // do reflow first so we can hope to scroll
 
             // reset to very bottom unless manually scrolled
-            if(!stopScroll) scrollToView(0, sizeY);
+            if(!noScroll) scrollToView(0, sizeY);
         }
 
         int ev_size_x(float dpi) { return sizeX; }
@@ -139,7 +141,7 @@ namespace dust
             // pass scroll to parent
             if(e.type == MouseEvent::tScroll)
             {
-                stopScroll = true;
+                noScroll = true;
                 return false;
             }
             
@@ -284,7 +286,7 @@ namespace dust
 
         int         hoverLine = -1;
 
-        bool        stopScroll = false;
+        bool        noScroll = false;
     };
 
 };

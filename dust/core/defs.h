@@ -109,7 +109,7 @@ namespace dust
     typedef std::function<void()>   Notify;
 
     // for use as a default noficication handler in widgets
-    inline void doNothing() {}
+    inline void doNothing(...) {}
 
     // RAII FPU state class .. only SSE version because .. well yeah
     class FPUState {
@@ -194,6 +194,7 @@ namespace dust
         va_list args;
         va_start(args,fmt);
         vfprintf(stderr, format.c_str(), args);
+        fflush(stderr);
         va_end(args);
 #endif
     }

@@ -5,9 +5,9 @@
 // TODO:
 //
 //  - full state save
-//  - syntax provider selection
 //  - auto-complete providers?
 //
+// We can now do this with "make dusted-complete":
 // clang -Wno-everything -x c++ -std=c++11 \
 //  -fsyntax-only -Xclang -code-completion-at -Xclang -:$line:$char -
 //
@@ -38,6 +38,11 @@
 #include <stdlib.h>
 #else
 #include <direct.h>
+#endif
+
+// FIXME: figure out a sensible way to configure this
+#ifndef DUSTED_DEFAULT_SCALE
+#define DUSTED_DEFAULT_SCALE 100
 #endif
 
 // This is a temporary hack of a treeview..
@@ -313,15 +318,15 @@ struct FileBrowser : dust::Panel
     FileBrowser()
     : root(".", "<Files>", 1)
     {
-        style.rule = dust::LayoutStyle::WEST;
+        style.rule = dust::LayoutStyle::FILL;
 
         btnChdir.setParent(*this);
         btnChdir.style.rule = dust::LayoutStyle::SOUTH;
         lblChdir.setParent(btnChdir);
-        lblChdir.setText("Change project root..");
+        lblChdir.setText("Change project..");
 
         scroll.setParent(*this);
-        scroll.style.minSizeX = 120;
+        // lblChdir forces a minimum width
         root.setParent(scroll.getContent());
 
         filler.style.rule = dust::LayoutStyle::FILL;
@@ -388,8 +393,9 @@ struct Document : dust::Panel
     // used to avoid accidental loss of data
     time_t              mtimeFile;
 
-    // FIXME: move save handling to appwindow?
+    // used to notify appwindow to redraw tab strips
     dust::Notify        onSaveAs;
+    dust::Notify        onCompletion;
 
     Document()
     {
@@ -399,6 +405,38 @@ struct Document : dust::Panel
         scroll.setOverscroll(0, .5f);
 
         editor.setParent(scroll.getContent());
+
+        editor.onContextMenu = [this](MouseEvent const & ev)
+        {
+            enum
+            {
+                idCut, idCopy, idPaste,
+                idSave, idSaveAs
+            };
+            auto onSelect = [this](unsigned id)
+            {
+                switch(id)
+                {
+                case idCut: editor.doCut(); break;
+                case idCopy: editor.doCopy(); break;
+                case idPaste: editor.doPaste(); break;
+    
+                case idSave: doSave(false, dust::doNothing); break;
+                case idSaveAs: doSave(true, dust::doNothing); break;
+                }
+            };
+    
+            auto * menu = getWindow()->createMenu(onSelect);
+            menu->addItem("Cut", idCut);
+            menu->addItem("Copy", idCopy);
+            menu->addItem("Paste", idPaste);
+            menu->addSeparator();
+            menu->addItem("Save", idSave);
+            menu->addItem("Save As...", idSaveAs);
+            menu->activate(
+                ev.x + editor.getLayout().windowOffsetX,
+                ev.y + editor.getLayout().windowOffsetY);
+        };
     }
 
     void selectSyntax()
@@ -453,11 +491,11 @@ struct Document : dust::Panel
             case dust::SCANCODE_S:
                 doSave(mods & dust::KEYMOD_SHIFT, dust::doNothing);
                 break;
-
+            case dust::SCANCODE_TAB: onCompletion(); break;
             default: return false;
         }
 
-        return true;
+        return false;
     }
 };
 
@@ -505,6 +543,8 @@ struct NoDocument : dust::Panel
 typedef dust::TabPanel<Document, NoDocument> DocumentPanel;
 struct DocumentPanelEx : DocumentPanel
 {
+    std::function<void(const char*)>    onDropFile;
+
     DocumentPanelEx()
     {
         hoverFiles.setVisible(false);
@@ -532,6 +572,8 @@ struct DocumentPanelEx : DocumentPanel
     }
 
     bool ev_accept_files() { return true; }
+
+    void ev_drop_file(const char * filename) { onDropFile(filename); }
   
 private:
     struct Overlay : dust::Panel
@@ -678,7 +720,7 @@ struct BuildPanel : dust::Panel
 
     void doCommand()
     {
-        if(slave.isAlive()) { return; } // FIXME: ?
+        if(slave.isAlive()) { return; } // don't kill a build
 
         slave.args.clear();
         
@@ -710,11 +752,36 @@ struct BuildPanel : dust::Panel
         runCommand("Building...");
     }
 
+    void doCompletion(DocumentTab * tab)
+    {
+        if(slave.isAlive()) { return; } // don't kill a build
+
+        slave.args.clear();
+        slave.pushArg("make");
+        slave.pushArg("dusted-complete");
+        slave.pushArg(dust::strf("DUSTED_PATH=\"%s\"", tab->content.path.c_str()));
+        slave.pushArg(dust::strf("DUSTED_LINE=%d", tab->content.editor.getCursorLine()));
+        slave.pushArg(dust::strf("DUSTED_COL=%d", tab->content.editor.getCursorColumn()));
+
+        output.clear();
+        output.stopScroll();    // don't scroll for completion
+        buffer.clear();
+        status.setText("");
+        output.bgColor = theme.bgColor;
+        
+        std::vector<char> txt;
+        tab->content.editor.outputContents(txt);
+        
+        slave.start();
+        slave.sendInput(txt.data(), txt.size());
+        slave.closeInput();
+
+        scroll.setEnabled(true);
+        autoClose = false;
+    }
+
     void runCommand(const char * statusTxt)
     {
-        // make sure panel is visible
-        setEnabled(true);
-        
         // clear data
         output.clear();
         buffer.clear();
@@ -800,7 +867,8 @@ struct BuildPanel : dust::Panel
 
 struct AppWindow : dust::Panel
 {
-    dust::Grid<2,2>  grid;
+    dust::Grid<2,1> topGrid;
+    dust::Grid<2,2> panelGrid;
 
     FileBrowser     browser;
     FindPanel       findPanel;
@@ -989,6 +1057,11 @@ struct AppWindow : dust::Panel
                 if(panel1.contains(tab)) panel1.redrawStrip();
             }
         };
+
+        tab->content.onCompletion = [this, tab]()
+        {
+            buildPanel.doCompletion(tab);
+        };
     }
 
     // returns true if we found and existing document
@@ -1069,6 +1142,8 @@ struct AppWindow : dust::Panel
     bool ev_key(dust::Scancode vk, bool pressed, unsigned mods)
     {
         if(!pressed) return false;
+
+        if(!mods && vk == dust::SCANCODE_ESCAPE) buildPanel.scroll.setEnabled(false);
 
         if(mods == dust::KEYMOD_CMD)
         switch(vk)
@@ -1154,19 +1229,19 @@ struct AppWindow : dust::Panel
         // switch between vertical / horizontal panel split
         // depending on whether the window is wider or taller
         bool hstack = layout.h > layout.w;
-        if(hstack && panel1.getParent() == grid.getCell(1,0))
+        if(hstack && panel1.getParent() == panelGrid.getCell(1,0))
         {
-            grid.insert(0, 1, panel1);
-            grid.weightRow(1, 1);
-            grid.weightColumn(1, 0);
+            panelGrid.insert(0, 1, panel1);
+            panelGrid.weightRow(1, 1);
+            panelGrid.weightColumn(1, 0);
             
             layoutAsRoot(dpi);
         }
-        if(!hstack && panel1.getParent() == grid.getCell(0,1))
+        if(!hstack && panel1.getParent() == panelGrid.getCell(0,1))
         {
-            grid.insert(1, 0, panel1);
-            grid.weightRow(1, 0);
-            grid.weightColumn(1, 1);
+            panelGrid.insert(1, 0, panel1);
+            panelGrid.weightRow(1, 0);
+            panelGrid.weightColumn(1, 1);
             
             layoutAsRoot(dpi);
         }
@@ -1177,7 +1252,12 @@ struct AppWindow : dust::Panel
     {
         style.rule = dust::LayoutStyle::FILL;
 
-        browser.setParent(*this);
+        topGrid.setParent(this);
+        topGrid.weightRow(0, 1.f);
+        topGrid.weightColumn(0, 1.f);
+        topGrid.weightColumn(1, 16.f);
+        
+        topGrid.insert(0, 0, browser);
         browser.root.onSelect = [this](const std::string & path)
         {
             this->openDocument(path);
@@ -1185,7 +1265,7 @@ struct AppWindow : dust::Panel
 
         browser.btnChdir.onClick = [&](){ changeDirectory(); };
         
-        buildPanel.setParent(*this);
+        topGrid.insert(1, 0, buildPanel);
         buildPanel.output.onClickError = [this](const char *path, int l, int c)
         {
             this->openDocument(path);
@@ -1198,37 +1278,41 @@ struct AppWindow : dust::Panel
             this->activeTab->content.editor.setPosition(l, c);
         };
 
-        buildPanel.header.style.padding.east = 6;
-        findPanel.findStatus.setParent(buildPanel.header);
-        findPanel.findStatus.style.rule = dust::LayoutStyle::EAST;
-        
-        findPanel.setParent(*this);
-        findPanel.findBox.onEnter = [this](){ this->doSearch(false, false); };
-        findPanel.findBox.onShiftEnter = [this](){ this->doSearch(false, true); };
-        findPanel.findBox.onEscape = [this]()
+        auto focusActive = [this]()
         {
             if(this->activeTab) this->activeTab->content.editor.focus();
         };
+        
+        buildPanel.header.style.padding.east = 6;
+        buildPanel.commandBox.onEscape = focusActive;
+        
+        findPanel.findStatus.setParent(buildPanel.header);
+        findPanel.findStatus.style.rule = dust::LayoutStyle::EAST;
+        
+        topGrid.insert(1, 0, findPanel);
+        findPanel.findBox.onEnter = [this](){ this->doSearch(false, false); };
+        findPanel.findBox.onShiftEnter = [this](){ this->doSearch(false, true); };
+        findPanel.findBox.onEscape = focusActive;
         findPanel.findBox.onTab = [this]()
         { findPanel.replaceBox.focusSelectAll(); };
         findPanel.findButton.onClick = findPanel.findBox.onEnter;
 
         findPanel.replaceBox.onEnter = [this](){ this->doSearch(true, false); };
         findPanel.replaceBox.onShiftEnter = [this](){ this->doSearch(true, true); };
-        findPanel.replaceBox.onEscape = findPanel.findBox.onEscape;
+        findPanel.replaceBox.onEscape = focusActive;
         findPanel.replaceButton.onClick = findPanel.replaceBox.onEnter;
         findPanel.replaceBox.onTab = [this]()
         { findPanel.findBox.focusSelectAll(); };
         
-        grid.insert(0, 0, panel0);
-        grid.insert(1, 0, panel1);
+        panelGrid.insert(0, 0, panel0);
+        panelGrid.insert(1, 0, panel1);
 
-        grid.weightRow(0, 1);
-        grid.weightRow(1, 0);
-        grid.weightColumn(0, 1);
-        grid.weightColumn(1, 1);
+        panelGrid.weightRow(0, 1);
+        panelGrid.weightRow(1, 0);
+        panelGrid.weightColumn(0, 1);
+        panelGrid.weightColumn(1, 1);
 
-        grid.setParent(*this);
+        topGrid.insert(1, 0, panelGrid);
 
         // build a circular linked list for inter-panel tab dragging
         panel0.dragLink = &panel1;
@@ -1236,14 +1320,11 @@ struct AppWindow : dust::Panel
 
         panel0.noContent.background.onClick = [this](){ newDocument(panel0); };
         panel1.noContent.background.onClick = [this](){ newDocument(panel1); };
-    }
 
-    void dropFile(Panel * panel, const char * path)
-    {
-        if(panel == &panel0) { openDocument(path, &panel0); return; }
-        if(panel == &panel1) { openDocument(path, &panel1); return; }
-        // anything else, open in active panel
-        openDocument(path);
+        panel0.onDropFile = [this](const char * path)
+            { openDocument(path, &panel0); };
+        panel1.onDropFile = [this](const char * path)
+            { openDocument(path, &panel1); };
     }
 };
 
@@ -1255,7 +1336,7 @@ struct Dusted : dust::Application
     {
         dust::Window * win = dust::createWindow(*this, 0, 16*72, 9*72);
         win->setMinSize(16*32, 9*32);
-        win->setScale(100);
+        win->setScale(DUSTED_DEFAULT_SCALE);
         win->toggleMaximize();
 
 #ifdef _WIN32
@@ -1285,13 +1366,6 @@ struct Dusted : dust::Application
 
         appWin.setParent(win);
         appWin.setWindowTitle();
-    }
-
-    bool win_can_dropfiles() { return true; }
-
-    void win_drop_file(Panel * panel, const char * path)
-    {
-        appWin.dropFile(panel, path);
     }
 
     bool win_closing()

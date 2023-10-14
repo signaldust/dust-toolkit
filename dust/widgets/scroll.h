@@ -75,8 +75,20 @@ namespace dust
                 setPosition(dragPos + (delta * rangeFull) / range);
                 return true;
             }
+            if(e.type == MouseEvent::tMove)
+            {
+                if(!hover) redraw();
+                hover = true;
+                return true;
+            }
 
             return false;
+        }
+
+        void ev_mouse_exit()
+        {
+            hover = false;
+            redraw();
         }
 
         void render(RenderContext & rc)
@@ -110,9 +122,11 @@ namespace dust
                 p.line(.5*hSize, .5*hSize + hPos + hLen);
             }
 
-            float bs = .1f * scrollbarSizePt * pt;
-            rc.strokePath(p, .5f * hSize + bs, paint::Color(theme.fgMidColor));
-            rc.strokePath(p, .5f * hSize, paint::Color(theme.bgColor));
+            float bs = .66f * pt;
+            rc.strokePath(p, .5f * hSize + bs,
+                paint::Color(hover ? theme.fgColor : theme.fgMidColor));
+            rc.strokePath(p, .5f * hSize,
+                paint::Color(hover ? theme.bgMidColor : theme.bgColor));
         }
     private:
         int position;   // client position
@@ -121,7 +135,7 @@ namespace dust
 
         int dragPos, dragOff;
 
-
+        bool hover = false;
     };
 
     typedef ScrollbarBase<false>    ScrollbarV;

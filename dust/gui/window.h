@@ -49,13 +49,6 @@ namespace dust
         // return true to allow the window to close
         virtual bool win_closing() { return true; }
 
-        // return true if we should accept drag&drop files
-        virtual bool win_can_dropfiles() { return false; }
-
-        // drop file into a panel - this goes through delegate
-        // because the accepting panel might not know how to handle it
-        virtual void win_drop_file(Panel * p, const char * path) {}
-
         // called when a window is closed
         // after this returns, the window will be destroyed
         virtual void win_closed() {}

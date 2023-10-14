@@ -275,11 +275,8 @@ struct CocoaWindow : Window
             [window makeKeyAndOrderFront:nil];
         }
 
-        if(delegate.win_can_dropfiles())
-        {
-            auto types = [NSArray arrayWithObjects: NSFilenamesPboardType, nil];
-            [sysView registerForDraggedTypes:types];
-        }
+        auto types = [NSArray arrayWithObjects: NSFilenamesPboardType, nil];
+        [sysView registerForDraggedTypes:types];
 
         // put it on autorelease pool, so it gets released
         // this still gives AU plugin host chance to use it
@@ -781,8 +778,7 @@ Window * dust::createWindow(WindowDelegate & delegate,
                         propertyListForType:NSFilenamesPboardType];
     for(int i = 0; i < [files count]; ++i)
     {
-        sysFrame->delegate.win_drop_file(panel,
-            [[files objectAtIndex:i] UTF8String]);
+        panel->ev_drop_file([[files objectAtIndex:i] UTF8String]);
     }
     sysFrame->sendMouseExit();
     

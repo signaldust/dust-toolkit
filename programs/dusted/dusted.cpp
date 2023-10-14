@@ -40,6 +40,11 @@
 #include <direct.h>
 #endif
 
+// FIXME: figure out a sensible way to configure this
+#ifndef DUSTED_DEFAULT_SCALE
+#define DUSTED_DEFAULT_SCALE 100
+#endif
+
 // This is a temporary hack of a treeview..
 // We really want to replace it with something better.
 //
@@ -388,7 +393,7 @@ struct Document : dust::Panel
     // used to avoid accidental loss of data
     time_t              mtimeFile;
 
-    // FIXME: move save handling to appwindow?
+    // used to notify appwindow to redraw tab strips
     dust::Notify        onSaveAs;
 
     Document()
@@ -399,6 +404,38 @@ struct Document : dust::Panel
         scroll.setOverscroll(0, .5f);
 
         editor.setParent(scroll.getContent());
+
+        editor.onContextMenu = [this](MouseEvent const & ev)
+        {
+            enum
+            {
+                idCut, idCopy, idPaste,
+                idSave, idSaveAs
+            };
+            auto onSelect = [this](unsigned id)
+            {
+                switch(id)
+                {
+                case idCut: editor.doCut(); break;
+                case idCopy: editor.doCopy(); break;
+                case idPaste: editor.doPaste(); break;
+    
+                case idSave: doSave(false, dust::doNothing); break;
+                case idSaveAs: doSave(true, dust::doNothing); break;
+                }
+            };
+    
+            auto * menu = getWindow()->createMenu(onSelect);
+            menu->addItem("Cut", idCut);
+            menu->addItem("Copy", idCopy);
+            menu->addItem("Paste", idPaste);
+            menu->addSeparator();
+            menu->addItem("Save", idSave);
+            menu->addItem("Save As...", idSaveAs);
+            menu->activate(
+                ev.x + editor.getLayout().windowOffsetX,
+                ev.y + editor.getLayout().windowOffsetY);
+        };
     }
 
     void selectSyntax()
@@ -505,6 +542,8 @@ struct NoDocument : dust::Panel
 typedef dust::TabPanel<Document, NoDocument> DocumentPanel;
 struct DocumentPanelEx : DocumentPanel
 {
+    std::function<void(const char*)>    onDropFile;
+
     DocumentPanelEx()
     {
         hoverFiles.setVisible(false);
@@ -532,6 +571,8 @@ struct DocumentPanelEx : DocumentPanel
     }
 
     bool ev_accept_files() { return true; }
+
+    void ev_drop_file(const char * filename) { onDropFile(filename); }
   
 private:
     struct Overlay : dust::Panel
@@ -1236,14 +1277,11 @@ struct AppWindow : dust::Panel
 
         panel0.noContent.background.onClick = [this](){ newDocument(panel0); };
         panel1.noContent.background.onClick = [this](){ newDocument(panel1); };
-    }
 
-    void dropFile(Panel * panel, const char * path)
-    {
-        if(panel == &panel0) { openDocument(path, &panel0); return; }
-        if(panel == &panel1) { openDocument(path, &panel1); return; }
-        // anything else, open in active panel
-        openDocument(path);
+        panel0.onDropFile = [this](const char * path)
+            { openDocument(path, &panel0); };
+        panel1.onDropFile = [this](const char * path)
+            { openDocument(path, &panel1); };
     }
 };
 
@@ -1255,7 +1293,7 @@ struct Dusted : dust::Application
     {
         dust::Window * win = dust::createWindow(*this, 0, 16*72, 9*72);
         win->setMinSize(16*32, 9*32);
-        win->setScale(100);
+        win->setScale(DUSTED_DEFAULT_SCALE);
         win->toggleMaximize();
 
 #ifdef _WIN32
@@ -1285,13 +1323,6 @@ struct Dusted : dust::Application
 
         appWin.setParent(win);
         appWin.setWindowTitle();
-    }
-
-    bool win_can_dropfiles() { return true; }
-
-    void win_drop_file(Panel * panel, const char * path)
-    {
-        appWin.dropFile(panel, path);
     }
 
     bool win_closing()

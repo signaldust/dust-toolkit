@@ -120,6 +120,10 @@ namespace dust
         // return true if we can drop files
         virtual bool ev_accept_files() { return false; }
 
+        // called when files are dropped onto a control
+        // that returned true from ev_accept_files
+        virtual void ev_drop_file(const char * filename) {}
+
     };
 
 };

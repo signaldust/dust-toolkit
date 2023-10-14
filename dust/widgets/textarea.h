@@ -49,6 +49,9 @@ namespace dust
         // called when something (even cursor position) changes
         Notify  onUpdate = doNothing;
 
+        // called on right click
+        std::function<void(MouseEvent const &)> onContextMenu = doNothing;
+
         Font    _font;
         
         bool    showLineNumbers = true;
@@ -717,26 +720,26 @@ namespace dust
             {
                 x += rc.drawChar(font, utf8::invalid,
                     paint::Color(theme.fgColor), lineMargin + x, y);
-
-                if(bytePos == selectEnd)
-                {
-                    int nextX = (int)(x + lineMargin
-                        + font->getCharAdvanceW(utf8::invalid));
-
-                    if(darkText)
-                        rc.fillRect<blend::Multiply>(
-                            paint::Color(selectColor),
-                            selectX, (int)(y - font->getAscent()),
-                            nextX - selectX, lineHeight);
-                    else
-                        rc.fillRect<blend::Screen>(
-                            paint::Color(selectColor),
-                            selectX, (int)(y - font->getAscent()),
-                            nextX - selectX, lineHeight);
-                }
             }
-
-            if(buffer.getCursor() == bytePos)
+            
+            if(inSelection)
+            {
+                if(darkText)
+                    rc.fillRect<blend::Multiply>(
+                        paint::Color(selectColor),
+                        selectX, (int)(y - font->getAscent()),
+                        int(x + lineMargin) - selectX, lineHeight);
+                else
+                    rc.fillRect<blend::Screen>(
+                        paint::Color(selectColor),
+                        selectX, (int)(y - font->getAscent()),
+                        int(x + lineMargin) - selectX, lineHeight);
+            }
+            
+            if(cursorThisLine)
+                drawCursor(cursorX+lineMargin,
+                    (int)(y - font->getAscent()));
+            else if(buffer.getCursor() == bytePos)
             {
                 drawCursor(x+lineMargin, (int)(y - font->getAscent()));
                 cursorThisLine = true;
@@ -879,6 +882,10 @@ namespace dust
             buffer.doNewline(indent);
         }
 
+        void doCut() { buffer.doCut(); redraw(); }
+        void doCopy() { buffer.doCopy(); redraw(); }
+        void doPaste() { buffer.doPaste(); redraw(); }
+
         void ev_focus(bool gained)
         {
             if(gained) onFocus();
@@ -957,6 +964,12 @@ namespace dust
                 
                 exposePoint(ev.x, ev.y);
                 return true;
+            }
+
+            if(ev.type == MouseEvent::tDown && ev.button == 2)
+            {
+                // ask for context menu
+                onContextMenu(ev); return true;
             }
 
             return false;

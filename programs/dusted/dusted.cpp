@@ -318,15 +318,15 @@ struct FileBrowser : dust::Panel
     FileBrowser()
     : root(".", "<Files>", 1)
     {
-        style.rule = dust::LayoutStyle::WEST;
+        style.rule = dust::LayoutStyle::FILL;
 
         btnChdir.setParent(*this);
         btnChdir.style.rule = dust::LayoutStyle::SOUTH;
         lblChdir.setParent(btnChdir);
-        lblChdir.setText("Change project root..");
+        lblChdir.setText("Change project..");
 
         scroll.setParent(*this);
-        scroll.style.minSizeX = 120;
+        // lblChdir forces a minimum width
         root.setParent(scroll.getContent());
 
         filler.style.rule = dust::LayoutStyle::FILL;
@@ -841,7 +841,8 @@ struct BuildPanel : dust::Panel
 
 struct AppWindow : dust::Panel
 {
-    dust::Grid<2,2>  grid;
+    dust::Grid<2,1> topGrid;
+    dust::Grid<2,2> panelGrid;
 
     FileBrowser     browser;
     FindPanel       findPanel;
@@ -1195,19 +1196,19 @@ struct AppWindow : dust::Panel
         // switch between vertical / horizontal panel split
         // depending on whether the window is wider or taller
         bool hstack = layout.h > layout.w;
-        if(hstack && panel1.getParent() == grid.getCell(1,0))
+        if(hstack && panel1.getParent() == panelGrid.getCell(1,0))
         {
-            grid.insert(0, 1, panel1);
-            grid.weightRow(1, 1);
-            grid.weightColumn(1, 0);
+            panelGrid.insert(0, 1, panel1);
+            panelGrid.weightRow(1, 1);
+            panelGrid.weightColumn(1, 0);
             
             layoutAsRoot(dpi);
         }
-        if(!hstack && panel1.getParent() == grid.getCell(0,1))
+        if(!hstack && panel1.getParent() == panelGrid.getCell(0,1))
         {
-            grid.insert(1, 0, panel1);
-            grid.weightRow(1, 0);
-            grid.weightColumn(1, 1);
+            panelGrid.insert(1, 0, panel1);
+            panelGrid.weightRow(1, 0);
+            panelGrid.weightColumn(1, 1);
             
             layoutAsRoot(dpi);
         }
@@ -1218,7 +1219,12 @@ struct AppWindow : dust::Panel
     {
         style.rule = dust::LayoutStyle::FILL;
 
-        browser.setParent(*this);
+        topGrid.setParent(this);
+        topGrid.weightRow(0, 1.f);
+        topGrid.weightColumn(0, 1.f);
+        topGrid.weightColumn(1, 16.f);
+        
+        topGrid.insert(0, 0, browser);
         browser.root.onSelect = [this](const std::string & path)
         {
             this->openDocument(path);
@@ -1226,7 +1232,7 @@ struct AppWindow : dust::Panel
 
         browser.btnChdir.onClick = [&](){ changeDirectory(); };
         
-        buildPanel.setParent(*this);
+        topGrid.insert(1, 0, buildPanel);
         buildPanel.output.onClickError = [this](const char *path, int l, int c)
         {
             this->openDocument(path);
@@ -1243,7 +1249,7 @@ struct AppWindow : dust::Panel
         findPanel.findStatus.setParent(buildPanel.header);
         findPanel.findStatus.style.rule = dust::LayoutStyle::EAST;
         
-        findPanel.setParent(*this);
+        topGrid.insert(1, 0, findPanel);
         findPanel.findBox.onEnter = [this](){ this->doSearch(false, false); };
         findPanel.findBox.onShiftEnter = [this](){ this->doSearch(false, true); };
         findPanel.findBox.onEscape = [this]()
@@ -1261,15 +1267,15 @@ struct AppWindow : dust::Panel
         findPanel.replaceBox.onTab = [this]()
         { findPanel.findBox.focusSelectAll(); };
         
-        grid.insert(0, 0, panel0);
-        grid.insert(1, 0, panel1);
+        panelGrid.insert(0, 0, panel0);
+        panelGrid.insert(1, 0, panel1);
 
-        grid.weightRow(0, 1);
-        grid.weightRow(1, 0);
-        grid.weightColumn(0, 1);
-        grid.weightColumn(1, 1);
+        panelGrid.weightRow(0, 1);
+        panelGrid.weightRow(1, 0);
+        panelGrid.weightColumn(0, 1);
+        panelGrid.weightColumn(1, 1);
 
-        grid.setParent(*this);
+        topGrid.insert(1, 0, panelGrid);
 
         // build a circular linked list for inter-panel tab dragging
         panel0.dragLink = &panel1;

@@ -2,7 +2,7 @@
 #pragma once
 
 #include <cstdio>
-#ifndef WIN32
+#ifndef _WIN32
 # include <sys/stat.h>
 # include <unistd.h>
 #else
@@ -369,7 +369,6 @@ namespace dust
             int lines = 1, lineHeight = (int)ceil(font->getLineHeight());
 
             float w = 0, x = 0;
-
             int cursorX = 0, cursorY = 0;
 
             lineMargin = 0;
@@ -387,6 +386,7 @@ namespace dust
                 {
                     cursorX = int(x);
                     cursorY = lines * lineHeight;
+
                 }
                 ++bytePos;
 
@@ -528,6 +528,7 @@ namespace dust
             if(getWindow()->getFocus() != this) cursorUseColor = 0;
 
             int line = 1, lineHeight = (int)ceil(font->getLineHeight());
+            int column = 1;
 
             float sw = font->getCharAdvanceW(' ');
             float x = 0, y = lineHeight - font->getDescent();
@@ -611,6 +612,9 @@ namespace dust
                 {
                     cursorX = x;
                     cursorThisLine = true;
+
+                    cursorLine = line;
+                    cursorColumn = column;
                 }
                 
                 // process attributes
@@ -624,6 +628,8 @@ namespace dust
 
                 // keep going until we have a full char
                 if(!decoder.next(byte)) continue;
+
+                ++column;
 
                 // ok, we have a character, initialize color
                 ARGB charColor = theme.fgColor;
@@ -669,7 +675,7 @@ namespace dust
 
                     cursorThisLine = false;
 
-                    x = 0; ++line;
+                    x = 0; ++line; column = 1;
                     y += lineHeight;
                     continue;
                 }
@@ -1108,6 +1114,9 @@ namespace dust
                 }
                 break;
 
+                // special case bubble escape
+                case SCANCODE_ESCAPE: return false;
+
                 // not holding cmd, so don't bubble
                 default: return true;
             }
@@ -1279,6 +1288,9 @@ namespace dust
         // return true if document is modified
         bool isModified() { return buffer.isModified(); }
 
+        int getCursorLine() { return cursorLine; }
+        int getCursorColumn() { return cursorColumn; }
+
     protected:
         std::vector<TextAttrib> attribs;
 
@@ -1300,6 +1312,8 @@ namespace dust
 
         int         sizeX;
         int         sizeY;
+
+        int         cursorLine, cursorColumn;
     };
 
 };

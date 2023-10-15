@@ -158,3 +158,9 @@ $(DUST_BUILDDIR)/%.cpp.o: %.cpp
 
 -include $(LIB_DEPENDS)
 -include $(SRC_DEPENDS)
+
+# Special target that dusted uses to get clang completions
+.PHONY: dusted-complete
+dusted-complete:
+	@clang -Wno-everything -x c++ $(CFLAGS) $(CXXFLAGS) -fsyntax-only -iquote$(dir $(DUSTED_PATH)). \
+        -Xclang -code-completion-at=-:$(DUSTED_LINE):$(DUSTED_COL) -

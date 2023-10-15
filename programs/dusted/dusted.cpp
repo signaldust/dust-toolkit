@@ -5,9 +5,9 @@
 // TODO:
 //
 //  - full state save
-//  - syntax provider selection
 //  - auto-complete providers?
 //
+// We can now do this with "make dusted-complete":
 // clang -Wno-everything -x c++ -std=c++11 \
 //  -fsyntax-only -Xclang -code-completion-at -Xclang -:$line:$char -
 //
@@ -395,6 +395,7 @@ struct Document : dust::Panel
 
     // used to notify appwindow to redraw tab strips
     dust::Notify        onSaveAs;
+    dust::Notify        onCompletion;
 
     Document()
     {
@@ -490,11 +491,11 @@ struct Document : dust::Panel
             case dust::SCANCODE_S:
                 doSave(mods & dust::KEYMOD_SHIFT, dust::doNothing);
                 break;
-
+            case dust::SCANCODE_TAB: onCompletion(); break;
             default: return false;
         }
 
-        return true;
+        return false;
     }
 };
 
@@ -719,7 +720,7 @@ struct BuildPanel : dust::Panel
 
     void doCommand()
     {
-        if(slave.isAlive()) { return; } // FIXME: ?
+        if(slave.isAlive()) { return; } // don't kill a build
 
         slave.args.clear();
         
@@ -751,11 +752,36 @@ struct BuildPanel : dust::Panel
         runCommand("Building...");
     }
 
+    void doCompletion(DocumentTab * tab)
+    {
+        if(slave.isAlive()) { return; } // don't kill a build
+
+        slave.args.clear();
+        slave.pushArg("make");
+        slave.pushArg("dusted-complete");
+        slave.pushArg(dust::strf("DUSTED_PATH=\"%s\"", tab->content.path.c_str()));
+        slave.pushArg(dust::strf("DUSTED_LINE=%d", tab->content.editor.getCursorLine()));
+        slave.pushArg(dust::strf("DUSTED_COL=%d", tab->content.editor.getCursorColumn()));
+
+        output.clear();
+        output.stopScroll();    // don't scroll for completion
+        buffer.clear();
+        status.setText("");
+        output.bgColor = theme.bgColor;
+        
+        std::vector<char> txt;
+        tab->content.editor.outputContents(txt);
+        
+        slave.start();
+        slave.sendInput(txt.data(), txt.size());
+        slave.closeInput();
+
+        scroll.setEnabled(true);
+        autoClose = false;
+    }
+
     void runCommand(const char * statusTxt)
     {
-        // make sure panel is visible
-        setEnabled(true);
-        
         // clear data
         output.clear();
         buffer.clear();
@@ -1031,6 +1057,11 @@ struct AppWindow : dust::Panel
                 if(panel1.contains(tab)) panel1.redrawStrip();
             }
         };
+
+        tab->content.onCompletion = [this, tab]()
+        {
+            buildPanel.doCompletion(tab);
+        };
     }
 
     // returns true if we found and existing document
@@ -1111,6 +1142,8 @@ struct AppWindow : dust::Panel
     bool ev_key(dust::Scancode vk, bool pressed, unsigned mods)
     {
         if(!pressed) return false;
+
+        if(!mods && vk == dust::SCANCODE_ESCAPE) buildPanel.scroll.setEnabled(false);
 
         if(mods == dust::KEYMOD_CMD)
         switch(vk)
@@ -1245,24 +1278,28 @@ struct AppWindow : dust::Panel
             this->activeTab->content.editor.setPosition(l, c);
         };
 
+        auto focusActive = [this]()
+        {
+            if(this->activeTab) this->activeTab->content.editor.focus();
+        };
+        
         buildPanel.header.style.padding.east = 6;
+        buildPanel.commandBox.onEscape = focusActive;
+        
         findPanel.findStatus.setParent(buildPanel.header);
         findPanel.findStatus.style.rule = dust::LayoutStyle::EAST;
         
         topGrid.insert(1, 0, findPanel);
         findPanel.findBox.onEnter = [this](){ this->doSearch(false, false); };
         findPanel.findBox.onShiftEnter = [this](){ this->doSearch(false, true); };
-        findPanel.findBox.onEscape = [this]()
-        {
-            if(this->activeTab) this->activeTab->content.editor.focus();
-        };
+        findPanel.findBox.onEscape = focusActive;
         findPanel.findBox.onTab = [this]()
         { findPanel.replaceBox.focusSelectAll(); };
         findPanel.findButton.onClick = findPanel.findBox.onEnter;
 
         findPanel.replaceBox.onEnter = [this](){ this->doSearch(true, false); };
         findPanel.replaceBox.onShiftEnter = [this](){ this->doSearch(true, true); };
-        findPanel.replaceBox.onEscape = findPanel.findBox.onEscape;
+        findPanel.replaceBox.onEscape = focusActive;
         findPanel.replaceButton.onClick = findPanel.replaceBox.onEnter;
         findPanel.replaceBox.onTab = [this]()
         { findPanel.findBox.focusSelectAll(); };

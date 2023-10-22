@@ -160,7 +160,7 @@ void Surface::blur(Surface & src, float r)
     unsigned w = src.szX, h = src.szY;
 
     // need a temporary surface to hold transposed data
-    Surface tmp(h, w);
+    Surface tmp(h, w, 16);
 
 #ifdef DUST_ARCH_X86
     // we absolutely can't have denormals!

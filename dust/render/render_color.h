@@ -41,7 +41,11 @@ namespace dust
         }
 
         // multiply two colors
-        static inline ARGB multiply(ARGB c1, ARGB c2) {
+        static inline ARGB multiply(ARGB c1, ARGB c2)
+        {
+            if(!c1 || !c2) return 0;
+            if(!~c1) return c2;
+            if(!~c2) return c1;
 
             // This unfortunately must be done component at a time
             ARGB a = (c1 >> 24)          * (c2 >> 24);

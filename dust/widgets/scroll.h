@@ -5,7 +5,7 @@
 
 namespace dust
 {
-    static const float  scrollbarSizePt = 6;
+    static const float  scrollbarSizePt = 9;
 
     template <bool horizontal>
     struct ScrollbarBase : Panel
@@ -22,7 +22,142 @@ namespace dust
             style.rule = horizontal ? LayoutStyle::SOUTH : LayoutStyle::EAST;
         }
 
+        double getPosition() const { return position; }
+        
+        double getRange() const { return rangeFull; }
+
+        void setPosition(double _position)
+        {
+            if(_position < 0) _position = 0;
+
+            double maxPos = rangeFull - rangeView;
+            if(_position > maxPos) _position = maxPos;
+
+            // if position doesn't change, bail out
+            if(_position == position) return;
+
+            // otherwise do the update
+            position = _position;
+
+            onScroll();
+            redraw();
+        }
+
+        void setScrollRange(double _rangeView, double _rangeFull)
+        {
+            rangeView = _rangeView;
+            rangeFull = _rangeFull;
+            setPosition(position);
+            redraw();   // always redraw
+        }
+
+        void setScrollState(double _position, double _rangeView, double _rangeFull)
+        {
+            position = _position;
+            rangeView = _rangeView;
+            rangeFull = _rangeFull;
+            setPosition(position);
+            redraw();   // always redraw
+        }
+
+        bool ev_mouse(const MouseEvent & e)
+        {
+            if(rangeView == rangeFull) return false;
+
+            if(e.type == MouseEvent::tDown && e.button == 1)
+            {
+                dragPos = position;
+                dragOff = horizontal ? e.x : e.y;
+                return true;
+            }
+            if(e.type == MouseEvent::tMove && e.button == 1)
+            {
+                double delta = (horizontal ? e.x : e.y) - dragOff;
+                double range = (horizontal ? layout.w : layout.h);
+                setPosition(dragPos + (delta * rangeFull) / range);
+                return true;
+            }
+            if(e.type == MouseEvent::tMove)
+            {
+                if(!hover) redraw();
+                hover = true;
+                return true;
+            }
+
+            return false;
+        }
+
+        void ev_mouse_exit()
+        {
+            hover = false;
+            redraw();
+        }
+
+        void render(RenderContext & rc)
+        {
+            if(rangeView >= rangeFull) return;
+
+            float pt = getWindow()->pt();
+
+            // available framesize in scroll direction
+            int fSize = horizontal ? layout.w : layout.h;
+
+            float hSize = scrollbarSizePt * pt;
+
+            // actual available scrolling size:
+            float sSize = fSize - hSize;
+
+            // handle offset and length in pixels
+            float hPos = (sSize * position) / rangeFull;
+            float hLen = (sSize * rangeView) / rangeFull;
+
+            // build a stroke path
+            Path p;
+            if(horizontal)
+            {
+                p.move(.5*hSize + hPos, .5*hSize);
+                p.line(.5*hSize + hPos + hLen, .5*hSize);
+            }
+            else
+            {
+                p.move(.5*hSize, .5*hSize + hPos);
+                p.line(.5*hSize, .5*hSize + hPos + hLen);
+            }
+
+            float bs = pt;
+            rc.strokePath(p, .5f * hSize + bs,
+                paint::Color(hover ? theme.fgColor : theme.fgMidColor));
+            rc.strokePath(p, .5f * hSize,
+                paint::Color(hover ? theme.bgMidColor : theme.bgColor));
+        }
+    private:
+        double position;   // client position
+        double rangeView;  // client range in view (handle scale)
+        double rangeFull;  // client range maximum
+
+        double dragPos, dragOff;
+
+        bool hover = false;
+    };
+    
+    template <bool horizontal>
+    struct xScrollbarBase : Panel
+    {
+        Notify onScroll = doNothing;
+
+        xScrollbarBase()
+        {
+            setScrollState(0, 1, 1);
+
+            style.minSizeX = (horizontal ? 2 : 1) * scrollbarSizePt;
+            style.minSizeY = (horizontal ? 1 : 2) * scrollbarSizePt;
+
+            style.rule = horizontal ? LayoutStyle::SOUTH : LayoutStyle::EAST;
+        }
+
         int getPosition() const { return position; }
+        
+        int getRange() const { return rangeFull; }
 
         void setPosition(int _position)
         {
@@ -168,7 +303,7 @@ namespace dust
 
         void ev_update()
         {
-            int x = hscroll.getPosition(), y = vscroll.getPosition();
+            int x = int(hscroll.getPosition()), y = int(vscroll.getPosition());
             auto & cl = content.getLayout();
 
             // early out
@@ -215,8 +350,8 @@ namespace dust
             if(dy > layout.h / 2) dy = layout.h / 2;
             
             // compute what region is actually visible
-            int x0 = hscroll.getPosition(), x1 = x0 + layout.w;
-            int y0 = vscroll.getPosition(), y1 = y0 + layout.h;
+            int x0 = int(hscroll.getPosition()), x1 = x0 + layout.w;
+            int y0 = int(vscroll.getPosition()), y1 = y0 + layout.h;
 
             int deltaX = 0;
             int deltaY = 0;
@@ -336,4 +471,6 @@ namespace dust
         int         dragX, dragY;
 
     };
+
+    
 };

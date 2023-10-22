@@ -409,7 +409,8 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
 
         // this will fix title-bar
         if(!parent) resize(w, h);
-        
+
+        // FIXME!!
         ::SetTimer(hwnd, 0, 1000/60, 0);
 
         // get system wheel scaling
@@ -1310,6 +1311,9 @@ LRESULT Win32Window::callback(
                 // now we can send it to application
                 if(out) sendText(bufUtf8);
             }
+
+            // hide cursor when typing
+            SetCursor(0);
         }
         break;
 

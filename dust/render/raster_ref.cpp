@@ -155,7 +155,12 @@ struct EdgeListBuilder
     float   offset;
 
     // offset is used to compensate for sampling position
-    EdgeListBuilder(float offset) : isOpen(false), offset(offset) { }
+    EdgeListBuilder(float offset) : isOpen(false), offset(offset)
+    {
+        // reserve enough space that small paths
+        // don't need to reallocate
+        edges.reserve(1024);
+    }
 
     void move(float x, float y)
     {

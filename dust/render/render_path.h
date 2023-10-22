@@ -561,13 +561,15 @@ namespace dust
             return *this;
         }
 
-        Path & end() { return *this; }
+        Path & end() { pushC(cEnd); return *this; }
 
         // plot() is a short-cut to either move() or line()
         // depending on whether there is already an open path
         Path & plot(float x, float y)
         {
-            if(!clist.size() || clist.back().c == cClose)
+            if(!clist.size()
+            || clist.back().c == cClose
+            || clist.back().c == cEnd)
             {
                 return move(x,y);
             }
@@ -726,6 +728,10 @@ namespace dust
                         out.close();
                         continue;
 
+                    case cEnd:
+                        out.end();
+                        continue;
+
                     default:
                         debugPrint("dust::Path - internal error\n");
                         return;
@@ -744,7 +750,8 @@ namespace dust
             cQuad,
             cCubic,
 
-            cClose
+            cClose,
+            cEnd
         };
 
         // we mix commands and coordinates in a flat list
@@ -769,32 +776,40 @@ namespace dust
     template <typename PathOut>
     struct TransformPath
     {
-        void close() {
-            to.close();
+        TransformPath & close() { to.close(); return *this; }
+
+        TransformPath & plot(float x, float y)
+        {
+            transform(x, y);
+            to.plot(x,y);
+            return *this;
         }
         
-        void move(float x, float y)
+        TransformPath & move(float x, float y)
         {
             transform(x, y);
             to.move(x,y);
+            return *this;
         }
         
-        void line(float x, float y)
+        TransformPath & line(float x, float y)
         {
             transform(x, y);
             to.line(x,y);
+            return *this;
         }
 
-        void quad(
+        TransformPath & quad(
             float x1, float y1,
             float x2, float y2)
         {
             transform(x1, y1);
             transform(x2, y2);
             to.quad(x1, y1, x2, y2);
+            return *this;
         }
 
-        void cubic(
+        TransformPath & cubic(
             float x1, float y1,
             float x2, float y2,
             float x3, float y3)
@@ -804,9 +819,10 @@ namespace dust
             transform(x3, y3);
 
             to.cubic(x1, y1, x2, y2, x3, y3);
+            return *this;
         }
 
-        void end() { to.end(); }
+        TransformPath & end() { to.end(); return *this; }
 
         // simple scale then offset
         TransformPath(PathOut & to,

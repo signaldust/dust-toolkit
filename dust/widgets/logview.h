@@ -172,6 +172,8 @@ namespace dust
                     // found the correct line
                     if(line == wantLine)
                     {
+                        // FIXME: could relax this for other separators
+                        // should look at what different things produce
                         if(byte == ':') { ++colons; continue; }
                         switch(colons)
                         {
@@ -181,9 +183,12 @@ namespace dust
                             errLine = errLine * 10 + byte - '0';
                             break;
                         case 2:
-                            if(byte < '0' || byte > '9') return true;
-                            errCol = errCol * 10 + byte - '0';
-                            break;
+                            if(byte >= '0' && byte <= '9')
+                            {
+                                errCol = errCol * 10 + byte - '0';
+                                break;
+                            }
+                            // if we don't have a column, just fall through
                         case 3:
                             if(!filename.size()) return true;
                             filename.push_back(0);

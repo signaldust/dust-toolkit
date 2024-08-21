@@ -5,9 +5,9 @@
 // TODO:
 //
 //  - full state save
-//  - syntax provider selection
 //  - auto-complete providers?
 //
+// We can now do this with "make dusted-complete":
 // clang -Wno-everything -x c++ -std=c++11 \
 //  -fsyntax-only -Xclang -code-completion-at -Xclang -:$line:$char -
 //
@@ -318,15 +318,15 @@ struct FileBrowser : dust::Panel
     FileBrowser()
     : root(".", "<Files>", 1)
     {
-        style.rule = dust::LayoutStyle::WEST;
+        style.rule = dust::LayoutStyle::FILL;
 
         btnChdir.setParent(*this);
         btnChdir.style.rule = dust::LayoutStyle::SOUTH;
         lblChdir.setParent(btnChdir);
-        lblChdir.setText("Change project root..");
+        lblChdir.setText("Change project..");
 
         scroll.setParent(*this);
-        scroll.style.minSizeX = 120;
+        // lblChdir forces a minimum width
         root.setParent(scroll.getContent());
 
         filler.style.rule = dust::LayoutStyle::FILL;
@@ -395,6 +395,7 @@ struct Document : dust::Panel
 
     // used to notify appwindow to redraw tab strips
     dust::Notify        onSaveAs;
+    dust::Notify        onCompletion;
 
     Document()
     {
@@ -490,11 +491,11 @@ struct Document : dust::Panel
             case dust::SCANCODE_S:
                 doSave(mods & dust::KEYMOD_SHIFT, dust::doNothing);
                 break;
-
+            case dust::SCANCODE_TAB: onCompletion(); break;
             default: return false;
         }
 
-        return true;
+        return false;
     }
 };
 
@@ -592,15 +593,19 @@ typedef DocumentPanel::Tab  DocumentTab;
 
 struct FindPanel : dust::Grid<2,2>
 {
-    dust::Button         findButton;
-    dust::Label          findLabel;
-    dust::TextBox        findBox;
+    dust::Panel         findGroup;
+    dust::Label         findLabel;
+    dust::TextButton    findNextButton;
+    dust::TextButton    findPrevButton;
+    dust::TextBox       findBox;
 
-    dust::Button         replaceButton;
-    dust::Label          replaceLabel;
-    dust::TextBox        replaceBox;
+    dust::Panel         replaceGroup;
+    dust::Label         replaceLabel;
+    dust::TextButton    replaceButton;
+    dust::TextButton    replaceAllButton;
+    dust::TextBox       replaceBox;
 
-    dust::Label          findStatus;
+    dust::Label         findStatus;
 
     FindPanel()
     {
@@ -608,23 +613,39 @@ struct FindPanel : dust::Grid<2,2>
 
         weightColumn(0, 1);
 
-        insert(1, 0, findButton);
-        findButton.style.rule = dust::LayoutStyle::FILL;
+        insert(1, 0, findGroup);
 
-        findLabel.setParent(findButton);
-        findLabel.style.rule = dust::LayoutStyle::FILL;
-        findLabel.setText("Find");
+        findPrevButton.setParent(findGroup);
+        findPrevButton.style.rule = dust::LayoutStyle::EAST;
+        findPrevButton.label.style.rule = dust::LayoutStyle::FILL;
+        findPrevButton.label.setText("back");
+        
+        findNextButton.setParent(findGroup);
+        findNextButton.style.rule = dust::LayoutStyle::EAST;
+        findNextButton.label.style.rule = dust::LayoutStyle::FILL;
+        findNextButton.label.setText("next");
 
+        findLabel.setParent(findGroup);
+        findLabel.setText("Find:");
+        
         insert(0, 0, findBox);
         findBox.style.padding.east = 6;
         findBox.onResetColor = [this]() { findStatus.setText(""); };
 
-        insert(1, 1, replaceButton);
-        replaceButton.style.rule = dust::LayoutStyle::FILL;
-
-        replaceLabel.setParent(replaceButton);
-        replaceLabel.style.rule = dust::LayoutStyle::FILL;
-        replaceLabel.setText("Replace");
+        insert(1, 1, replaceGroup);
+        
+        replaceAllButton.setParent(replaceGroup);
+        replaceAllButton.style.rule = dust::LayoutStyle::EAST;
+        replaceAllButton.label.style.rule = dust::LayoutStyle::FILL;
+        replaceAllButton.label.setText("all");
+        
+        replaceButton.setParent(replaceGroup);
+        replaceButton.style.rule = dust::LayoutStyle::EAST;
+        replaceButton.label.style.rule = dust::LayoutStyle::FILL;
+        replaceButton.label.setText("one");
+        
+        replaceLabel.setParent(replaceGroup);
+        replaceLabel.setText("Replace:");
 
         insert(0, 1, replaceBox);
         replaceBox.style.padding.east = 6;
@@ -719,7 +740,7 @@ struct BuildPanel : dust::Panel
 
     void doCommand()
     {
-        if(slave.isAlive()) { return; } // FIXME: ?
+        if(slave.isAlive()) { return; } // don't kill a build
 
         slave.args.clear();
         
@@ -751,11 +772,36 @@ struct BuildPanel : dust::Panel
         runCommand("Building...");
     }
 
+    void doCompletion(DocumentTab * tab)
+    {
+        if(slave.isAlive()) { return; } // don't kill a build
+
+        slave.args.clear();
+        slave.pushArg("make");
+        slave.pushArg("dusted-complete");
+        slave.pushArg(dust::strf("DUSTED_PATH=\"%s\"", tab->content.path.c_str()));
+        slave.pushArg(dust::strf("DUSTED_LINE=%d", tab->content.editor.getCursorLine()));
+        slave.pushArg(dust::strf("DUSTED_COL=%d", tab->content.editor.getCursorColumn()));
+
+        output.clear();
+        output.stopScroll();    // don't scroll for completion
+        buffer.clear();
+        status.setText("");
+        output.bgColor = theme.bgColor;
+        
+        std::vector<char> txt;
+        tab->content.editor.outputContents(txt);
+        
+        slave.start();
+        slave.sendInput(txt.data(), txt.size());
+        slave.closeInput();
+
+        scroll.setEnabled(true);
+        autoClose = false;
+    }
+
     void runCommand(const char * statusTxt)
     {
-        // make sure panel is visible
-        setEnabled(true);
-        
         // clear data
         output.clear();
         buffer.clear();
@@ -841,7 +887,8 @@ struct BuildPanel : dust::Panel
 
 struct AppWindow : dust::Panel
 {
-    dust::Grid<2,2>  grid;
+    dust::Grid<2,1> topGrid;
+    dust::Grid<2,2> panelGrid;
 
     FileBrowser     browser;
     FindPanel       findPanel;
@@ -850,7 +897,7 @@ struct AppWindow : dust::Panel
     DocumentPanelEx panel0, panel1;
     DocumentTab     *activeTab = 0;
 
-    void doSearch(bool replace, bool backwards)
+    void doSearch(bool replace, bool shift)
     {
         if(!activeTab) return;
     
@@ -862,8 +909,8 @@ struct AppWindow : dust::Panel
         {
             findPanel.findStatus.setText(
                 dust::strf("Invalid pattern: %s", re.error()));
+            findPanel.findBox.focus();
             findPanel.findBox.cursorColor = dust::theme.errColor;
-            findPanel.replaceBox.cursorColor = dust::theme.errColor;
             return;
         }
 
@@ -877,22 +924,45 @@ struct AppWindow : dust::Panel
             repPtr = repStr.data();
         }
 
-        unsigned index = 0;
-        unsigned nMatch = activeTab->content.editor.doSearch(
-            re, backwards, index, repPtr);
-
-        if(nMatch)
+        if(replace && shift)
         {
-            findPanel.findStatus.setText(dust::strf("%d/%d result%s",
-                index+1, nMatch, nMatch == 1 ? "" : "s"));
+            unsigned nMatch =
+                activeTab->content.editor.doReplaceAll(re, repPtr);
+                
+            if(nMatch)
+            {
+                findPanel.findStatus.setText(dust::strf("replaced %d match%s",
+                    nMatch, nMatch == 1 ? "" : "es"));
+            }
+            else
+            {
+                findPanel.findStatus.setText("no results");
+            }
+
+            findPanel.findBox.cursorColor = nMatch
+                ? dust::theme.goodColor : dust::theme.warnColor;
         }
         else
         {
-            findPanel.findStatus.setText("no results");
+            bool backwards = shift;
+            unsigned index = 0;
+            unsigned nMatch = activeTab->content.editor.doSearch(
+                re, backwards, index, repPtr);
+    
+            if(nMatch)
+            {
+                findPanel.findStatus.setText(dust::strf("%d/%d result%s",
+                    index+1, nMatch, nMatch == 1 ? "" : "s"));
+            }
+            else
+            {
+                findPanel.findStatus.setText("no results");
+            }
+    
+            findPanel.findBox.cursorColor = nMatch
+                ? dust::theme.goodColor : dust::theme.warnColor;
         }
-
-        findPanel.findBox.cursorColor = nMatch
-            ? dust::theme.goodColor : dust::theme.warnColor;
+        
         findPanel.findBox.redraw();
         findPanel.replaceBox.cursorColor = findPanel.findBox.cursorColor;
         findPanel.replaceBox.redraw();
@@ -1030,6 +1100,11 @@ struct AppWindow : dust::Panel
                 if(panel1.contains(tab)) panel1.redrawStrip();
             }
         };
+
+        tab->content.onCompletion = [this, tab]()
+        {
+            buildPanel.doCompletion(tab);
+        };
     }
 
     // returns true if we found and existing document
@@ -1110,6 +1185,8 @@ struct AppWindow : dust::Panel
     bool ev_key(dust::Scancode vk, bool pressed, unsigned mods)
     {
         if(!pressed) return false;
+
+        if(!mods && vk == dust::SCANCODE_ESCAPE) buildPanel.scroll.setEnabled(false);
 
         if(mods == dust::KEYMOD_CMD)
         switch(vk)
@@ -1195,19 +1272,19 @@ struct AppWindow : dust::Panel
         // switch between vertical / horizontal panel split
         // depending on whether the window is wider or taller
         bool hstack = layout.h > layout.w;
-        if(hstack && panel1.getParent() == grid.getCell(1,0))
+        if(hstack && panel1.getParent() == panelGrid.getCell(1,0))
         {
-            grid.insert(0, 1, panel1);
-            grid.weightRow(1, 1);
-            grid.weightColumn(1, 0);
+            panelGrid.insert(0, 1, panel1);
+            panelGrid.weightRow(1, 1);
+            panelGrid.weightColumn(1, 0);
             
             layoutAsRoot(dpi);
         }
-        if(!hstack && panel1.getParent() == grid.getCell(0,1))
+        if(!hstack && panel1.getParent() == panelGrid.getCell(0,1))
         {
-            grid.insert(1, 0, panel1);
-            grid.weightRow(1, 0);
-            grid.weightColumn(1, 1);
+            panelGrid.insert(1, 0, panel1);
+            panelGrid.weightRow(1, 0);
+            panelGrid.weightColumn(1, 1);
             
             layoutAsRoot(dpi);
         }
@@ -1218,7 +1295,12 @@ struct AppWindow : dust::Panel
     {
         style.rule = dust::LayoutStyle::FILL;
 
-        browser.setParent(*this);
+        topGrid.setParent(this);
+        topGrid.weightRow(0, 1.f);
+        topGrid.weightColumn(0, 1.f);
+        topGrid.weightColumn(1, 16.f);
+        
+        topGrid.insert(0, 0, browser);
         browser.root.onSelect = [this](const std::string & path)
         {
             this->openDocument(path);
@@ -1226,7 +1308,7 @@ struct AppWindow : dust::Panel
 
         browser.btnChdir.onClick = [&](){ changeDirectory(); };
         
-        buildPanel.setParent(*this);
+        topGrid.insert(1, 0, buildPanel);
         buildPanel.output.onClickError = [this](const char *path, int l, int c)
         {
             this->openDocument(path);
@@ -1239,37 +1321,43 @@ struct AppWindow : dust::Panel
             this->activeTab->content.editor.setPosition(l, c);
         };
 
-        buildPanel.header.style.padding.east = 6;
-        findPanel.findStatus.setParent(buildPanel.header);
-        findPanel.findStatus.style.rule = dust::LayoutStyle::EAST;
-        
-        findPanel.setParent(*this);
-        findPanel.findBox.onEnter = [this](){ this->doSearch(false, false); };
-        findPanel.findBox.onShiftEnter = [this](){ this->doSearch(false, true); };
-        findPanel.findBox.onEscape = [this]()
+        auto focusActive = [this]()
         {
             if(this->activeTab) this->activeTab->content.editor.focus();
         };
+        
+        buildPanel.header.style.padding.east = 6;
+        buildPanel.commandBox.onEscape = focusActive;
+        
+        findPanel.findStatus.setParent(buildPanel.header);
+        findPanel.findStatus.style.rule = dust::LayoutStyle::EAST;
+        
+        topGrid.insert(1, 0, findPanel);
+        findPanel.findBox.onEnter = [this](){ this->doSearch(false, false); };
+        findPanel.findBox.onShiftEnter = [this](){ this->doSearch(false, true); };
+        findPanel.findBox.onEscape = focusActive;
         findPanel.findBox.onTab = [this]()
         { findPanel.replaceBox.focusSelectAll(); };
-        findPanel.findButton.onClick = findPanel.findBox.onEnter;
+        findPanel.findNextButton.onClick = findPanel.findBox.onEnter;
+        findPanel.findPrevButton.onClick = findPanel.findBox.onShiftEnter;
 
         findPanel.replaceBox.onEnter = [this](){ this->doSearch(true, false); };
         findPanel.replaceBox.onShiftEnter = [this](){ this->doSearch(true, true); };
-        findPanel.replaceBox.onEscape = findPanel.findBox.onEscape;
+        findPanel.replaceBox.onEscape = focusActive;
         findPanel.replaceButton.onClick = findPanel.replaceBox.onEnter;
+        findPanel.replaceAllButton.onClick = findPanel.replaceBox.onShiftEnter;
         findPanel.replaceBox.onTab = [this]()
         { findPanel.findBox.focusSelectAll(); };
         
-        grid.insert(0, 0, panel0);
-        grid.insert(1, 0, panel1);
+        panelGrid.insert(0, 0, panel0);
+        panelGrid.insert(1, 0, panel1);
 
-        grid.weightRow(0, 1);
-        grid.weightRow(1, 0);
-        grid.weightColumn(0, 1);
-        grid.weightColumn(1, 1);
+        panelGrid.weightRow(0, 1);
+        panelGrid.weightRow(1, 0);
+        panelGrid.weightColumn(0, 1);
+        panelGrid.weightColumn(1, 1);
 
-        grid.setParent(*this);
+        topGrid.insert(1, 0, panelGrid);
 
         // build a circular linked list for inter-panel tab dragging
         panel0.dragLink = &panel1;

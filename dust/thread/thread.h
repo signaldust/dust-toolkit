@@ -96,7 +96,9 @@ namespace dust
             readGeneration += 2;
 
             // then we can load the pointer
-            return ptr;
+            T * _ptr = ptr;
+            memfence();
+            return _ptr;
         }
 
         void rtRelease()

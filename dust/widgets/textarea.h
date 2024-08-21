@@ -2,7 +2,7 @@
 #pragma once
 
 #include <cstdio>
-#ifndef WIN32
+#ifndef _WIN32
 # include <sys/stat.h>
 # include <unistd.h>
 #else
@@ -135,8 +135,8 @@ namespace dust
             }
         }
 
-        // called by doSearch, not really useful otherwise
-        void doReplaceForSelection(lore::Matcher & m, const char * replace)
+        // called by doSearch/doReplaceAll, not really useful otherwise
+        void doReplaceForSelection(lore::Match & m, const char * replace)
         {
             std::vector<char>   subst;
 
@@ -167,6 +167,135 @@ namespace dust
 
             buffer.doText(subst.data(), subst.size());
             recalculateSize();
+        }
+
+        // search for a pattern with regex, replace each instance found
+        // return number of matches
+        unsigned doReplaceAll(lore::Regex &re, const char * replace)
+        {
+            // we want to also undo all by single action
+            auto _ta = buffer.transaction();
+        
+            std::vector<lore::Match>    matches;
+            
+            lore::Matcher m(re);
+
+            // get iterators for the contents
+            auto itr = buffer.begin();
+            auto end = buffer.end();
+            
+            // also track beginning of current line
+            auto lineStart = itr;
+            
+            // position within the line and at start
+            unsigned pos = 0, posLine = 0;
+
+            // loop buffer
+            m.start(pos);
+            while(itr != end)
+            {
+                char byte = *itr;
+
+                ++itr; ++pos;
+
+                // if this is regular byte, do regular match
+                if(byte != '\n')
+                {
+                    if(!m.next(byte)) continue;
+
+                    // if we have a match, record it
+                    if(m.valid())
+                    {
+                        unsigned p0 = m.getGroupStart(0);
+                        unsigned p1 = m.getGroupEnd(0);
+
+                        // LORE should no longer return empty matches as valid!
+                        if(p0 == p1)
+                        {
+                            dust::debugPrint("WARNING: Empty match?!?\n");
+                            return 0;
+                        }
+                        
+                        matches.emplace_back(m);
+
+                        // if not anchored, restart after match
+                        if(!re.onlyAtBeginning())
+                        {
+                            itr = lineStart;
+                            pos = posLine;
+
+                            // forward, but not past the end of file
+                            while(pos < p1)
+                            {
+                                ++itr; ++pos;
+                                if(itr == end) break;
+                            }
+
+                            m.start(pos);
+                            continue;
+                        }
+                    }
+                }
+
+                // did we hit the end of line
+                if(byte == '\n')
+                {
+                    m.end();
+
+                    if(m.valid())
+                    {
+                        unsigned p0 = m.getGroupStart(0);
+                        unsigned p1 = m.getGroupEnd(0);
+
+                        // LORE should no longer return empty matches as valid!
+                        if(p0 == p1)
+                        {
+                            dust::debugPrint("WARNING: Empty match?!?\n");
+                            return 0;
+                        }
+                        
+                        matches.emplace_back(m);
+                    }
+
+                    // setup for next line
+                    posLine = pos;
+                    lineStart = itr;
+
+                    m.start(pos);
+                    continue;
+                }
+
+            }
+
+            // check for final match after loop
+            m.end();
+            if(m.valid())
+            {
+                unsigned p0 = m.getGroupStart(0);
+                unsigned p1 = m.getGroupEnd(0);
+
+                // LORE should no longer return empty matches as valid!
+                if(p0 == p1)
+                {
+                    dust::debugPrint("WARNING: Empty match?!?\n");
+                    return 0;
+                }
+                
+                matches.emplace_back(m);
+            }
+            
+            unsigned nMatch = matches.size();
+
+            // loop backwards to keep positions for remaining matches
+            while(matches.size())
+            {
+                auto & m = matches.back();
+                buffer.setSelection(m.getGroupEnd(0), m.getGroupStart(0));
+                doReplaceForSelection(m, replace);
+                matches.pop_back();
+            }
+
+            return nMatch;
         }
 
         // search for a pattern with regex, return number of matches
@@ -220,7 +349,8 @@ namespace dust
                         && p0 == buffer.getSelectionStart()
                         && p1 == buffer.getSelectionEnd())
                         {
-                            doReplaceForSelection(m, replace);
+                            lore::Match _m(m);
+                            doReplaceForSelection(_m, replace);
                             // break and do a new search
                             // because we modified data
                             return doSearch(re, findPrev, matchIndex);
@@ -254,21 +384,26 @@ namespace dust
                     {
                         unsigned p0 = m.getGroupStart(0);
                         unsigned p1 = m.getGroupEnd(0);
+                        
+                        // LORE should no longer return empty matches as valid!
+                        if(p0 == p1)
+                        {
+                            dust::debugPrint("WARNING: Empty match?!?\n");
+                            return 0;
+                        }
 
                         // here we just ignore empty matches
-                        if(p0 != p1)
+                        if(replace
+                        && p0 == buffer.getSelectionStart()
+                        && p1 == buffer.getSelectionEnd())
                         {
-                            if(replace
-                            && p0 == buffer.getSelectionStart()
-                            && p1 == buffer.getSelectionEnd())
-                            {
-                                doReplaceForSelection(m, replace);
-                                // break and do a new search
-                                // because we modified data
-                                return doSearch(re, findPrev, matchIndex);
-                            }
-                            else matches.push_back({ p0, p1 });
+                            lore::Match _m(m);
+                            doReplaceForSelection(_m, replace);
+                            // break and do a new search
+                            // because we modified data
+                            return doSearch(re, findPrev, matchIndex);
                         }
+                        else matches.push_back({ p0, p1 });
                     }
 
                     // setup for next line
@@ -299,7 +434,8 @@ namespace dust
                 && p0 == buffer.getSelectionStart()
                 && p1 == buffer.getSelectionEnd())
                 {
-                    doReplaceForSelection(m, replace);
+                    lore::Match _m(m);
+                    doReplaceForSelection(_m, replace);
                     // break and do a new search
                     // because we modified data
                     return doSearch(re, findPrev, matchIndex);
@@ -369,7 +505,6 @@ namespace dust
             int lines = 1, lineHeight = (int)ceil(font->getLineHeight());
 
             float w = 0, x = 0;
-
             int cursorX = 0, cursorY = 0;
 
             lineMargin = 0;
@@ -387,6 +522,7 @@ namespace dust
                 {
                     cursorX = int(x);
                     cursorY = lines * lineHeight;
+
                 }
                 ++bytePos;
 
@@ -528,6 +664,7 @@ namespace dust
             if(getWindow()->getFocus() != this) cursorUseColor = 0;
 
             int line = 1, lineHeight = (int)ceil(font->getLineHeight());
+            int column = 1;
 
             float sw = font->getCharAdvanceW(' ');
             float x = 0, y = lineHeight - font->getDescent();
@@ -611,6 +748,9 @@ namespace dust
                 {
                     cursorX = x;
                     cursorThisLine = true;
+
+                    cursorLine = line;
+                    cursorColumn = column;
                 }
                 
                 // process attributes
@@ -624,6 +764,8 @@ namespace dust
 
                 // keep going until we have a full char
                 if(!decoder.next(byte)) continue;
+
+                ++column;
 
                 // ok, we have a character, initialize color
                 ARGB charColor = theme.fgColor;
@@ -669,7 +811,7 @@ namespace dust
 
                     cursorThisLine = false;
 
-                    x = 0; ++line;
+                    x = 0; ++line; column = 1;
                     y += lineHeight;
                     continue;
                 }
@@ -1108,6 +1250,9 @@ namespace dust
                 }
                 break;
 
+                // special case bubble escape
+                case SCANCODE_ESCAPE: return false;
+
                 // not holding cmd, so don't bubble
                 default: return true;
             }
@@ -1279,6 +1424,9 @@ namespace dust
         // return true if document is modified
         bool isModified() { return buffer.isModified(); }
 
+        int getCursorLine() { return cursorLine; }
+        int getCursorColumn() { return cursorColumn; }
+
     protected:
         std::vector<TextAttrib> attribs;
 
@@ -1300,6 +1448,8 @@ namespace dust
 
         int         sizeX;
         int         sizeY;
+
+        int         cursorLine, cursorColumn;
     };
 
 };

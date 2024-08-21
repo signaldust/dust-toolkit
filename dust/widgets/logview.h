@@ -31,9 +31,11 @@ namespace dust
         void clear()
         { 
             buffer.clear();
-            stopScroll = false;
+            noScroll = false;
             recalculateSize(); 
         }
+
+        void stopScroll() { noScroll = true; }
         
         void append(const char * txt, unsigned n)
         {
@@ -120,7 +122,7 @@ namespace dust
             reflow();   // do reflow first so we can hope to scroll
 
             // reset to very bottom unless manually scrolled
-            if(!stopScroll) scrollToView(0, sizeY);
+            if(!noScroll) scrollToView(0, sizeY);
         }
 
         int ev_size_x(float dpi) { return sizeX; }
@@ -139,7 +141,7 @@ namespace dust
             // pass scroll to parent
             if(e.type == MouseEvent::tScroll)
             {
-                stopScroll = true;
+                noScroll = true;
                 return false;
             }
             
@@ -170,6 +172,8 @@ namespace dust
                     // found the correct line
                     if(line == wantLine)
                     {
+                        // FIXME: could relax this for other separators
+                        // should look at what different things produce
                         if(byte == ':') { ++colons; continue; }
                         switch(colons)
                         {
@@ -179,9 +183,12 @@ namespace dust
                             errLine = errLine * 10 + byte - '0';
                             break;
                         case 2:
-                            if(byte < '0' || byte > '9') return true;
-                            errCol = errCol * 10 + byte - '0';
-                            break;
+                            if(byte >= '0' && byte <= '9')
+                            {
+                                errCol = errCol * 10 + byte - '0';
+                                break;
+                            }
+                            // if we don't have a column, just fall through
                         case 3:
                             if(!filename.size()) return true;
                             filename.push_back(0);
@@ -284,7 +291,7 @@ namespace dust
 
         int         hoverLine = -1;
 
-        bool        stopScroll = false;
+        bool        noScroll = false;
     };
 
 };

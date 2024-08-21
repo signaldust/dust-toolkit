@@ -18,11 +18,6 @@
 //
 namespace dust
 {
-    // this is the maximum distance error allowed for subdivision
-    static const float subdivTolerance = .125f;
-    // the subvision logic actually needs it squared
-    static const float subdivTolerance2 = subdivTolerance*subdivTolerance;
-
     // This implements curve subdivisions for paths.
     //
     // The methods act like path commands, translating them into
@@ -32,6 +27,10 @@ namespace dust
     //
     namespace subdivide
     {
+        // this is the maximum distance error allowed for subdivision
+        static const float tolerance = .125f;
+        // the subvision logic actually needs it squared
+        static const float tolerance2 = tolerance*tolerance;
 
         // quadratic bezier subdivision: split at middle until
         // the mid-point of the line is close to the control point
@@ -48,8 +47,7 @@ namespace dust
             float xd = x02 - x1, yd = y02 - y1;
 
             // can we approximate as a line?
-            float tol2 = subdivTolerance2;
-            if(xd*xd + yd*yd <= tol2)
+            if(xd*xd + yd*yd <= tolerance2)
             {
                 to.line(x2, y2);
             }
@@ -86,9 +84,8 @@ namespace dust
             float xd2 = x13 - x2, yd2 = y13 - y2;
 
             // can we approximate as a line?
-            float tol2 = subdivTolerance2;
-            if(xd1*xd1 + yd1*yd1 <= tol2
-            && xd2*xd2 + yd2*yd2 <= tol2)
+            if(xd1*xd1 + yd1*yd1 <= tolerance2
+            && xd2*xd2 + yd2*yd2 <= tolerance2)
             {
                 to.line(x3, y3);
             }
@@ -221,7 +218,7 @@ namespace dust
             // this way the brush is always 4-ways symmetric
             //
             // using square tolerance here is a good idea?
-            float tol = subdivTolerance2;
+            float tol = subdivide::tolerance2;
             int nBrush = 4 * (int) ceil(.25f * pi/acos(1.f - 2*tol/width));
             if(nBrush < 4) nBrush = 4;
 
@@ -564,13 +561,15 @@ namespace dust
             return *this;
         }
 
-        Path & end() { return *this; }
+        Path & end() { pushC(cEnd); return *this; }
 
         // plot() is a short-cut to either move() or line()
         // depending on whether there is already an open path
         Path & plot(float x, float y)
         {
-            if(!clist.size() || clist.back().c == cClose)
+            if(!clist.size()
+            || clist.back().c == cClose
+            || clist.back().c == cEnd)
             {
                 return move(x,y);
             }
@@ -588,7 +587,7 @@ namespace dust
             // this is essentially a verbatim copy of what we have
             // in the stroke brush generation, so see comments there
             float pi = acos(-1.f);
-            float tol = subdivTolerance2;
+            float tol = subdivide::tolerance2;
             int nDiv = 4 * (int) ceil(.25f * pi/acos(1.f - 2*tol/r));
             if(nDiv < 4) nDiv = 4;
             float polyFrac = (nDiv*sin(2*pi/nDiv))/(2*pi);
@@ -729,6 +728,10 @@ namespace dust
                         out.close();
                         continue;
 
+                    case cEnd:
+                        out.end();
+                        continue;
+
                     default:
                         debugPrint("dust::Path - internal error\n");
                         return;
@@ -747,7 +750,8 @@ namespace dust
             cQuad,
             cCubic,
 
-            cClose
+            cClose,
+            cEnd
         };
 
         // we mix commands and coordinates in a flat list
@@ -772,32 +776,40 @@ namespace dust
     template <typename PathOut>
     struct TransformPath
     {
-        void close() {
-            to.close();
+        TransformPath & close() { to.close(); return *this; }
+
+        TransformPath & plot(float x, float y)
+        {
+            transform(x, y);
+            to.plot(x,y);
+            return *this;
         }
         
-        void move(float x, float y)
+        TransformPath & move(float x, float y)
         {
             transform(x, y);
             to.move(x,y);
+            return *this;
         }
         
-        void line(float x, float y)
+        TransformPath & line(float x, float y)
         {
             transform(x, y);
             to.line(x,y);
+            return *this;
         }
 
-        void quad(
+        TransformPath & quad(
             float x1, float y1,
             float x2, float y2)
         {
             transform(x1, y1);
             transform(x2, y2);
             to.quad(x1, y1, x2, y2);
+            return *this;
         }
 
-        void cubic(
+        TransformPath & cubic(
             float x1, float y1,
             float x2, float y2,
             float x3, float y3)
@@ -807,9 +819,10 @@ namespace dust
             transform(x3, y3);
 
             to.cubic(x1, y1, x2, y2, x3, y3);
+            return *this;
         }
 
-        void end() { to.end(); }
+        TransformPath & end() { to.end(); return *this; }
 
         // simple scale then offset
         TransformPath(PathOut & to,

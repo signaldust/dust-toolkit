@@ -160,7 +160,7 @@ void Surface::blur(Surface & src, float r)
     unsigned w = src.szX, h = src.szY;
 
     // need a temporary surface to hold transposed data
-    Surface tmp(h, w);
+    Surface tmp(h, w, 16);
 
 #ifdef DUST_ARCH_X86
     // we absolutely can't have denormals!
@@ -273,6 +273,41 @@ void Surface::emboss(float h)
     }
 }
 
+void Surface::fadeEdges(float radius)
+{
+    int ymax = std::min(unsigned(ceilf(radius)), szY);
+    for(int y = 0; y < ymax; ++y)
+    {
+        // compute smooth step
+        float t = (y + .5f) / radius;
+        int fade = int(0xff * ( t*t*(3-2*t) ));
+
+        for(int x = 0; x < szX; ++x)
+        {
+            pixels[x+pitch*y] =
+                color::blend(pixels[x+pitch*y], fade);
+            pixels[x+pitch*(szY-y-1)] =
+                color::blend(pixels[x+pitch*(szY-y-1)], fade);
+        }
+    }
+    
+    int xmax = std::min(unsigned(ceilf(radius)), szX);
+
+    for(int x = 0; x < xmax; ++x)
+    {
+        // compute smooth step
+        float t = (x + .5f) / radius;
+        int fade = int(0xff * ( t*t*(3-2*t) ));
+
+        for(int y = 0; y < szY; ++y)
+        {
+            pixels[x+pitch*y] =
+                color::blend(pixels[x+pitch*y], fade);
+            pixels[(szX-x-1)+pitch*y] =
+                color::blend(pixels[(szX-x-1)+pitch*y], fade);
+        }
+    }
+}
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "dust/libs/stb_image.h"

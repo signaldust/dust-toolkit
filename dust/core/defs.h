@@ -194,6 +194,7 @@ namespace dust
         va_list args;
         va_start(args,fmt);
         vfprintf(stderr, format.c_str(), args);
+        fflush(stderr);
         va_end(args);
 #endif
     }

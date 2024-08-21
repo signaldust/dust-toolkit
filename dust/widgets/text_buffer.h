@@ -1026,13 +1026,20 @@ namespace dust
             ptable.setNotModified();
 
         }
+        
+        typedef PieceTable::RAIIAction  Action;
+
+        Action transaction()
+        {
+            auto a = Action(ptable, PieceTable::TRANSACT_DEFAULT);
+            ptable.saveRedoCursor();
+            return a;
+        }
 
     private:
         // used by row-movement logic to mark "moveRowColumn"
         // as invalid (ie. next move up/down needs to recalculate)
         static const unsigned invalidColumn = ~0;
-
-        typedef PieceTable::RAIIAction  Action;
 
         PieceTable  ptable;
 

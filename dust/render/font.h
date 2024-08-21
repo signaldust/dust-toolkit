@@ -200,6 +200,10 @@ namespace dust
             loadFont(sizePt, dpi, __getDefaultFontData(monospace));
         }
 
+        // convenience overloads
+        void loadDefaultFont(float sizePt) { loadDefaultFont(sizePt, 96, false); }
+        void loadDefaultMono(float sizePt) { loadDefaultFont(sizePt, 96, true); }
+
         Font & operator=(Font & f)
         { release(); instance = f.instance->retain(); return *this; }
 		FontInstance * operator->() const { return instance; }

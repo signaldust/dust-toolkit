@@ -179,6 +179,26 @@ namespace dust
             }
 #endif
         }
+
+        // return true if success, false if error occurs
+        bool sendInput(const char * bytes, unsigned nBytes)
+        {
+            unsigned offset = 0;
+            while(offset < nBytes)
+            {
+#ifdef _WIN32
+                DWORD wrote = 0;
+                if(!WriteFile(slaveInput,
+                    bytes + offset, nBytes - offset, &wrote, 0)) return false;
+                offset += wrote;
+#else
+                ssize_t wrote = write(slaveInput, bytes + offset, nBytes - offset);
+                if(wrote < 1) return false,
+                offset += wrote;
+#endif
+            }
+            return true;
+        }
         
         // this closes the pipe associated with slave input
         // it is safe to call this multiple times

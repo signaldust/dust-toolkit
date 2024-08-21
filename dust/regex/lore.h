@@ -721,4 +721,34 @@ namespace lore
         }
     };
 
+    // represent once match (for storing multiple)
+    class Match
+    {
+        PositionType loc[20]; // \0..\9
+    public:
+        Match(Matcher & m)
+        {
+            for(int i = 0; i < 10; ++i)
+            {
+                loc[2*i+0] = m.getGroupStart(i);
+                loc[2*i+1] = m.getGroupEnd(i);
+            }
+        }
+        
+        // return beginning position for a given submatch
+        // if (start > end) then a group didn't match
+        PositionType getGroupStart(unsigned g) const
+        {
+            assert(g < 10);
+            return loc[(g<<1)];
+        }
+
+        // return ending position for a given submatch
+        PositionType getGroupEnd(unsigned g) const
+        {
+            assert(g < 10);
+            return loc[(g<<1)+1];
+        }
+    };
+
 };

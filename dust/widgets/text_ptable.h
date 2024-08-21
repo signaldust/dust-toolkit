@@ -123,7 +123,7 @@ namespace dust
             virtual void redo(PieceTable & ) = 0;
             virtual void undo(PieceTable & ) = 0;
 
-            void swapCursorXX(PieceTable & seq)
+            void swapCursor(PieceTable & seq)
             {
                 std::swap(alt.pos0, seq.cursor.pos0);
                 std::swap(alt.pos1, seq.cursor.pos1);
@@ -152,10 +152,10 @@ namespace dust
         {
             OpCursor(PieceTable & seq) : BaseOp(seq) { }
 
-            void undo(PieceTable &) {}
-            // we undo cursor only in REDO here,
-            // where as other ops restore it in UNDO
-            void redo(PieceTable & seq) { undoCursor(seq); }
+            // do an explicit swap either way even though
+            // most of the time it's redundant for undo?
+            void undo(PieceTable & seq) { swapCursor(seq); }
+            void redo(PieceTable & seq) { swapCursor(seq); }
         };
 
         struct OpAddSpan : public BaseOp
@@ -417,6 +417,11 @@ namespace dust
         {
             PieceTable & seq;
         public:
+            // this allows passing transactions around
+            RAIIAction(RAIIAction const & ra) : seq(ra.seq)
+            {
+                seq.beginAction(seq.transactionType); // type is irrelevant
+            }
             RAIIAction(PieceTable & seq,
                 TransactionType type = TRANSACT_DEFAULT) : seq(seq)
             {

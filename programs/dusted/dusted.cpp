@@ -593,15 +593,19 @@ typedef DocumentPanel::Tab  DocumentTab;
 
 struct FindPanel : dust::Grid<2,2>
 {
-    dust::Button         findButton;
-    dust::Label          findLabel;
-    dust::TextBox        findBox;
+    dust::Panel         findGroup;
+    dust::Label         findLabel;
+    dust::TextButton    findNextButton;
+    dust::TextButton    findPrevButton;
+    dust::TextBox       findBox;
 
-    dust::Button         replaceButton;
-    dust::Label          replaceLabel;
-    dust::TextBox        replaceBox;
+    dust::Panel         replaceGroup;
+    dust::Label         replaceLabel;
+    dust::TextButton    replaceButton;
+    dust::TextButton    replaceAllButton;
+    dust::TextBox       replaceBox;
 
-    dust::Label          findStatus;
+    dust::Label         findStatus;
 
     FindPanel()
     {
@@ -609,23 +613,39 @@ struct FindPanel : dust::Grid<2,2>
 
         weightColumn(0, 1);
 
-        insert(1, 0, findButton);
-        findButton.style.rule = dust::LayoutStyle::FILL;
+        insert(1, 0, findGroup);
 
-        findLabel.setParent(findButton);
-        findLabel.style.rule = dust::LayoutStyle::FILL;
-        findLabel.setText("Find");
+        findPrevButton.setParent(findGroup);
+        findPrevButton.style.rule = dust::LayoutStyle::EAST;
+        findPrevButton.label.style.rule = dust::LayoutStyle::FILL;
+        findPrevButton.label.setText("back");
+        
+        findNextButton.setParent(findGroup);
+        findNextButton.style.rule = dust::LayoutStyle::EAST;
+        findNextButton.label.style.rule = dust::LayoutStyle::FILL;
+        findNextButton.label.setText("next");
 
+        findLabel.setParent(findGroup);
+        findLabel.setText("Find:");
+        
         insert(0, 0, findBox);
         findBox.style.padding.east = 6;
         findBox.onResetColor = [this]() { findStatus.setText(""); };
 
-        insert(1, 1, replaceButton);
-        replaceButton.style.rule = dust::LayoutStyle::FILL;
-
-        replaceLabel.setParent(replaceButton);
-        replaceLabel.style.rule = dust::LayoutStyle::FILL;
-        replaceLabel.setText("Replace");
+        insert(1, 1, replaceGroup);
+        
+        replaceAllButton.setParent(replaceGroup);
+        replaceAllButton.style.rule = dust::LayoutStyle::EAST;
+        replaceAllButton.label.style.rule = dust::LayoutStyle::FILL;
+        replaceAllButton.label.setText("all");
+        
+        replaceButton.setParent(replaceGroup);
+        replaceButton.style.rule = dust::LayoutStyle::EAST;
+        replaceButton.label.style.rule = dust::LayoutStyle::FILL;
+        replaceButton.label.setText("one");
+        
+        replaceLabel.setParent(replaceGroup);
+        replaceLabel.setText("Replace:");
 
         insert(0, 1, replaceBox);
         replaceBox.style.padding.east = 6;
@@ -877,7 +897,7 @@ struct AppWindow : dust::Panel
     DocumentPanelEx panel0, panel1;
     DocumentTab     *activeTab = 0;
 
-    void doSearch(bool replace, bool backwards)
+    void doSearch(bool replace, bool shift)
     {
         if(!activeTab) return;
     
@@ -889,8 +909,8 @@ struct AppWindow : dust::Panel
         {
             findPanel.findStatus.setText(
                 dust::strf("Invalid pattern: %s", re.error()));
+            findPanel.findBox.focus();
             findPanel.findBox.cursorColor = dust::theme.errColor;
-            findPanel.replaceBox.cursorColor = dust::theme.errColor;
             return;
         }
 
@@ -904,22 +924,45 @@ struct AppWindow : dust::Panel
             repPtr = repStr.data();
         }
 
-        unsigned index = 0;
-        unsigned nMatch = activeTab->content.editor.doSearch(
-            re, backwards, index, repPtr);
-
-        if(nMatch)
+        if(replace && shift)
         {
-            findPanel.findStatus.setText(dust::strf("%d/%d result%s",
-                index+1, nMatch, nMatch == 1 ? "" : "s"));
+            unsigned nMatch =
+                activeTab->content.editor.doReplaceAll(re, repPtr);
+                
+            if(nMatch)
+            {
+                findPanel.findStatus.setText(dust::strf("replaced %d match%s",
+                    nMatch, nMatch == 1 ? "" : "es"));
+            }
+            else
+            {
+                findPanel.findStatus.setText("no results");
+            }
+
+            findPanel.findBox.cursorColor = nMatch
+                ? dust::theme.goodColor : dust::theme.warnColor;
         }
         else
         {
-            findPanel.findStatus.setText("no results");
+            bool backwards = shift;
+            unsigned index = 0;
+            unsigned nMatch = activeTab->content.editor.doSearch(
+                re, backwards, index, repPtr);
+    
+            if(nMatch)
+            {
+                findPanel.findStatus.setText(dust::strf("%d/%d result%s",
+                    index+1, nMatch, nMatch == 1 ? "" : "s"));
+            }
+            else
+            {
+                findPanel.findStatus.setText("no results");
+            }
+    
+            findPanel.findBox.cursorColor = nMatch
+                ? dust::theme.goodColor : dust::theme.warnColor;
         }
-
-        findPanel.findBox.cursorColor = nMatch
-            ? dust::theme.goodColor : dust::theme.warnColor;
+        
         findPanel.findBox.redraw();
         findPanel.replaceBox.cursorColor = findPanel.findBox.cursorColor;
         findPanel.replaceBox.redraw();
@@ -1295,12 +1338,14 @@ struct AppWindow : dust::Panel
         findPanel.findBox.onEscape = focusActive;
         findPanel.findBox.onTab = [this]()
         { findPanel.replaceBox.focusSelectAll(); };
-        findPanel.findButton.onClick = findPanel.findBox.onEnter;
+        findPanel.findNextButton.onClick = findPanel.findBox.onEnter;
+        findPanel.findPrevButton.onClick = findPanel.findBox.onShiftEnter;
 
         findPanel.replaceBox.onEnter = [this](){ this->doSearch(true, false); };
         findPanel.replaceBox.onShiftEnter = [this](){ this->doSearch(true, true); };
         findPanel.replaceBox.onEscape = focusActive;
         findPanel.replaceButton.onClick = findPanel.replaceBox.onEnter;
+        findPanel.replaceAllButton.onClick = findPanel.replaceBox.onShiftEnter;
         findPanel.replaceBox.onTab = [this]()
         { findPanel.findBox.focusSelectAll(); };
         

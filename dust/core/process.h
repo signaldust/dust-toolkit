@@ -253,6 +253,7 @@ namespace dust
 #ifdef _WIN32
             bool alive = (WaitForSingleObject(slaveHandle, 0) == WAIT_TIMEOUT);
 #else
+            int status = 0;
             bool alive = !waitpid(slavePid, &status, WNOHANG);
 #endif
             
@@ -297,7 +298,6 @@ namespace dust
             CloseHandle(slaveHandle);
             slaveHandle = 0;
 #else
-            int status = 0;
             if(!WIFEXITED(status)) exitStatus = -1;
             else exitStatus = WEXITSTATUS(status);
             

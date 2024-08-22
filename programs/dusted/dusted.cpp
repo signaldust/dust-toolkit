@@ -397,6 +397,10 @@ struct Document : dust::Panel
     dust::Notify        onSaveAs;
     dust::Notify        onCompletion;
 
+    // used to notify appwindow about context menu actions
+    dust::Notify        onMenuNew;
+    dust::Notify        onMenuOpen;
+
     Document()
     {
         style.rule = dust::LayoutStyle::FILL;
@@ -411,7 +415,7 @@ struct Document : dust::Panel
             enum
             {
                 idCut, idCopy, idPaste,
-                idSave, idSaveAs
+                idNew, idOpen, idSave, idSaveAs
             };
             auto onSelect = [this](unsigned id)
             {
@@ -420,7 +424,10 @@ struct Document : dust::Panel
                 case idCut: editor.doCut(); break;
                 case idCopy: editor.doCopy(); break;
                 case idPaste: editor.doPaste(); break;
-    
+
+                case idNew: onMenuNew(); break;
+                case idOpen: onMenuOpen(); break;
+                
                 case idSave: doSave(false, dust::doNothing); break;
                 case idSaveAs: doSave(true, dust::doNothing); break;
                 }
@@ -431,6 +438,8 @@ struct Document : dust::Panel
             menu->addItem("Copy", idCopy);
             menu->addItem("Paste", idPaste);
             menu->addSeparator();
+            menu->addItem("New", idNew);
+            menu->addItem("Open...", idOpen);
             menu->addItem("Save", idSave);
             menu->addItem("Save As...", idSaveAs);
             menu->activate(
@@ -611,22 +620,27 @@ struct FindPanel : dust::Grid<2,2>
     {
         style.rule = dust::LayoutStyle::SOUTH;
 
+        Font monofont;
+        monofont.loadDefaultFont(8.f, 72.f, true);
+
         weightColumn(0, 1);
 
         insert(1, 0, findGroup);
 
-        findPrevButton.setParent(findGroup);
-        findPrevButton.style.rule = dust::LayoutStyle::EAST;
-        findPrevButton.label.style.rule = dust::LayoutStyle::FILL;
-        findPrevButton.label.setText("back");
-        
         findNextButton.setParent(findGroup);
         findNextButton.style.rule = dust::LayoutStyle::EAST;
         findNextButton.label.style.rule = dust::LayoutStyle::FILL;
-        findNextButton.label.setText("next");
+        findNextButton.label.font = monofont;
+        findNextButton.label.setText("\u25B6");
 
+        findPrevButton.setParent(findGroup);
+        findPrevButton.style.rule = dust::LayoutStyle::EAST;
+        findPrevButton.label.style.rule = dust::LayoutStyle::FILL;
+        findPrevButton.label.font = monofont;
+        findPrevButton.label.setText("\u25C0");
+        
         findLabel.setParent(findGroup);
-        findLabel.setText("Find:");
+        findLabel.setText("Search:");
         
         insert(0, 0, findBox);
         findBox.style.padding.east = 6;
@@ -637,12 +651,14 @@ struct FindPanel : dust::Grid<2,2>
         replaceAllButton.setParent(replaceGroup);
         replaceAllButton.style.rule = dust::LayoutStyle::EAST;
         replaceAllButton.label.style.rule = dust::LayoutStyle::FILL;
-        replaceAllButton.label.setText("all");
+        replaceAllButton.label.font = monofont;
+        replaceAllButton.label.setText("\u2200");
         
         replaceButton.setParent(replaceGroup);
         replaceButton.style.rule = dust::LayoutStyle::EAST;
         replaceButton.label.style.rule = dust::LayoutStyle::FILL;
-        replaceButton.label.setText("one");
+        replaceButton.label.font = monofont;
+        replaceButton.label.setText("1");
         
         replaceLabel.setParent(replaceGroup);
         replaceLabel.setText("Replace:");
@@ -1091,6 +1107,9 @@ struct AppWindow : dust::Panel
             setWindowTitle();
         };
 
+        tab->content.onMenuNew = [this](){ newDocument(); };
+        tab->content.onMenuOpen = [this](){ openDialog(); };
+
         tab->content.editor.focus();
         tab->content.editor.onUpdate = [this, tab]() {
             if(tab->modified != tab->content.editor.isModified())
@@ -1131,9 +1150,18 @@ struct AppWindow : dust::Panel
         setWindowTitle();
     }
 
+    void openDialog()
+    {
+        auto onOpen = [&](const char * path)
+        {
+            openDocument(path);
+        };
+        getWindow()->openDialog(onOpen, true, browser.root.path.c_str());
+    }
+
     void openDocument(const std::string & path, DocumentPanel * inPanel = 0)
     {
-#ifdef _WIN32
+#ifdef _WIN32ooooOz
         wchar_t w_absPath[MAX_PATH+1];
         _wfullpath(w_absPath, to_u16(path).c_str(), MAX_PATH);
         auto absPath = to_u8(w_absPath);
@@ -1192,15 +1220,7 @@ struct AppWindow : dust::Panel
         switch(vk)
         {
             case dust::SCANCODE_N: newDocument(); break;
-            case dust::SCANCODE_O:
-                {
-                    auto onOpen = [&](const char * path)
-                    {
-                        openDocument(path);
-                    };
-                    getWindow()->openDialog(onOpen, true, browser.root.path.c_str());
-                }
-                break;
+            case dust::SCANCODE_O: openDialog(); break;
             case dust::SCANCODE_F:
                 findPanel.findBox.focusSelectAll();
                 findPanel.findStatus.setText("");

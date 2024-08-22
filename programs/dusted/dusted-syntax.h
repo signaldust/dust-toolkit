@@ -26,7 +26,9 @@ namespace
             if(!strcasecmp(ext, ".c")) return true;
             if(!strcasecmp(ext, ".h")) return true;
             if(!strcasecmp(ext, ".cpp")) return true;
+            if(!strcasecmp(ext, ".hpp")) return true;
             if(!strcasecmp(ext, ".cc")) return true;
+            if(!strcasecmp(ext, ".hh")) return true;
             if(!strcasecmp(ext, ".cs")) return true;
             if(!strcasecmp(ext, ".js")) return true;
             if(!strcasecmp(ext, ".html")) return true;

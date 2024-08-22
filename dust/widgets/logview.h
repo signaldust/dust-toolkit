@@ -80,10 +80,6 @@ namespace dust
 
             float w = 0, x = 0;
 
-            // assume (for now) all digits are same size
-            // this is safe for most sensible fonts
-            float dw = font->getCharAdvanceW('0');
-
             // use space width for tabStops
             // only matters for proportional fonts
             float sw = font->getCharAdvanceW(' ');
@@ -155,7 +151,7 @@ namespace dust
             // try to parse for error positions
             if(e.type == MouseEvent::tDown && e.button == 1)
             {
-                int line = 0, lineHeight = (int)ceil(font->getLineHeight());
+                int line = 0;
                 int wantLine = int(e.y - font->getDescent())
                     / (int)ceil(font->getLineHeight());
 
@@ -218,7 +214,6 @@ namespace dust
 
             int line = 0, lineHeight = (int)ceil(font->getLineHeight());
 
-            float dw = font->getCharAdvanceW('0');
             float sw = font->getCharAdvanceW(' ');
 
             float x = 0, y = lineHeight - font->getDescent();

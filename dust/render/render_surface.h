@@ -1,6 +1,10 @@
 
 #pragma once
 
+#include <vector>
+
+#include "render_color.h"
+
 namespace dust
 {
     // Surface is a CPU-memory array of pixels

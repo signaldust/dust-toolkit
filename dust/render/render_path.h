@@ -604,9 +604,6 @@ namespace dust
             if(start) move(cx+cos(a0)*radius, cy+sin(a0)*radius);
             else line(cx+cos(a0)*radius, cy+sin(a0)*radius);
 
-            float x = radius;
-            float y = 0;
-
             if(a0 < a1)
             {
                 int i0 = (int) ceil(a0/tick);

@@ -6,8 +6,14 @@
 #define DUST_DEBUG_PRINT 1
 #endif
 
+// set this to 1 to also ::OutputDebugString() on Windows
+// only has an effect is DUST_DEBUG_PRINT is enabled
+#ifndef DUST_DEBUG_PRINT_WIN_DEBUG
+#define DUST_DEBUG_PRINT_WIN_DEBUG 1
+#endif
+
 // set this to 1 to make DUST_TRACE produce output
-// is only has an effect if DUST_DEBUG_PRINT is enabled
+// only has an effect if DUST_DEBUG_PRINT is enabled
 #ifndef DUST_DEBUG_TRACE
 #define DUST_DEBUG_TRACE 1
 #endif
@@ -190,11 +196,29 @@ namespace dust
         // atomic in case we're running multi-threaded
         format = strf("DEBUG:%*s %s\n",
             2*debugTraceNestingLevel, "", format.c_str());
+# else
+        // this trickery is necessary to keep the final print
+        // atomic in case we're running multi-threaded
+        format = strf("DEBUG: %s\n", format.c_str());
 # endif
         va_list args;
+        
+#if defined(_WIN32) && DUST_DEBUG_PRINT_WIN_DEBUG
+        va_start(args, fmt);
+        int len = vsnprintf(0, 0, format.c_str(), args);
+        va_end(args);
+
+        std::vector<char>   buf(len + 1);
+        va_start(args, fmt);
+        vsnprintf(&buf[0], len + 1, format.c_str(), args);
+        va_end(args);
+        fputs(buf.data(), stderr);
+        ::OutputDebugStringA(buf.data());
+#else
         va_start(args,fmt);
         vfprintf(stderr, format.c_str(), args);
         fflush(stderr);
+#endif
         va_end(args);
 #endif
     }

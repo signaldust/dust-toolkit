@@ -250,7 +250,6 @@ namespace dust
             char buf[bufSize];
             
             // figure out if child is actually alive
-            int status = 0;
 #ifdef _WIN32
             bool alive = (WaitForSingleObject(slaveHandle, 0) == WAIT_TIMEOUT);
 #else
@@ -298,6 +297,7 @@ namespace dust
             CloseHandle(slaveHandle);
             slaveHandle = 0;
 #else
+            int status = 0;
             if(!WIFEXITED(status)) exitStatus = -1;
             else exitStatus = WEXITSTATUS(status);
             

@@ -476,6 +476,9 @@ struct CocoaWindow : Window
     MouseEvent buildMouseEvent(NSView * view,
         NSEvent*event, uint8_t btn, uint8_t nClick)
     {
+        // not sure where to do this, might as well do here
+        [[NSCursor arrowCursor] set];
+    
         NSPoint p = [view convertPoint:[event locationInWindow] fromView:nil];
 
         updateKeymods();

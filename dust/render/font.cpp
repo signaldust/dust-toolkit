@@ -64,7 +64,7 @@ float FontInstance::splitLines(std::vector<unsigned> & outBreaks,
     unsigned charStart = 0;
 
     // we use this to check if last char is incomplete
-    bool charDone = true, txtDone = false;
+    bool charDone = true;
     for(unsigned i = 0; i < len; ++i)
     {
         if(charDone) charStart = i;

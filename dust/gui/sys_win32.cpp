@@ -10,6 +10,7 @@
 
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "ole32.lib")
+#pragma comment(lib, "winmm.lib")   // timeBeginPeriod
 
 #define UNICODE
 #include <windows.h>
@@ -20,6 +21,8 @@
 #if DUST_USE_OPENGL
 # include "GL/gl3w.h"
 #endif
+
+#include "dust/thread/thread.h"
 
 #include "window.h"
 #include "key_scancode_win.h"
@@ -103,6 +106,7 @@ static LRESULT CALLBACK wheelHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
     return CallNextHookEx(hWheelHook, nCode, wParam, lParam);
 }
 
+// FIXME: Might not need this on Win10, but need to somehow detect :P
 struct Win32WheelHook
 {
     void installHook(HWND hwnd)
@@ -353,7 +357,6 @@ namespace {
 
 // this is not in our glext.h :(
 typedef BOOL (APIENTRY * PFNGLWGLSWAPINTERVALEXTPROC) (GLint interval);
-
 #endif
 
 using namespace dust;
@@ -411,6 +414,7 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         if(!parent) resize(w, h);
 
         // FIXME!!
+        timeBeginPeriod(1);
         ::SetTimer(hwnd, 0, 1000/60, 0);
 
         // get system wheel scaling
@@ -429,8 +433,8 @@ struct Win32Window : Window, Win32Callback, WinDropHandler
         pfd.iPixelType = PFD_TYPE_RGBA;
         pfd.cColorBits = 24;
         pfd.cAlphaBits = 8;
-        pfd.cDepthBits = 24;    // can we get stencil without depth bits?
-        pfd.cStencilBits = 8;   // want stencil bits
+        pfd.cDepthBits = 0;     // don't care, using FBOs
+        pfd.cStencilBits = 0;   // don't care, using FBOs
         
         int format;
         format = ChoosePixelFormat(hdc, &pfd);
@@ -1033,8 +1037,6 @@ LRESULT Win32Window::callback(
         break;
 
     case WM_PAINT:
-        // need to do this paintstruct stuff even with OpenGL
-        // FIXME: OpenGL though..
         {
 #if DUST_USE_OPENGL
             ValidateRect(hwnd, 0);

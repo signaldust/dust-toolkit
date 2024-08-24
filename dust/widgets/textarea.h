@@ -1281,7 +1281,7 @@ namespace dust
             && !txt[1] && attribs.size())
             {
                 // figure out if we're in default/operator context?
-                unsigned attr = TextAttrib::aDefault, c = buffer.getCursor();
+                unsigned c = buffer.getCursor();
                 unsigned i0 = 0, i1 = attribs.size() - 1;
                 while(i0 < i1)
                 {

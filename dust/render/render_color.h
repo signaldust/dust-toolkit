@@ -2,9 +2,8 @@
 #pragma once
 
 #include <cmath>
+#include <cstdint>
 #include <algorithm>
-
-#include "dust/core/defs.h"
 
 namespace dust
 {
@@ -25,13 +24,26 @@ namespace dust
             if(!blend) return 0;
             if(blend==0xff) return c;
 
-            // two components at a time
-            ARGB ag = (((c>>8)& 0xff00ff)*blend) + 0x800080;
-            ARGB rb = ((c     & 0xff00ff)*blend) + 0x800080;
+            // slightly faster(?) 64-bit path
+            if(sizeof(uintptr_t) >= 8)
+            {
+                uintptr_t _c = c;
+                _c = (((_c&0xff00ff00u)<<24)|(_c&0x00ff00ffu)) * blend
+                    + 0x0080008000800080u;
+                _c &= 0xff00ff00ff00ff00u;
 
-            ag = ((ag + ((ag&0xff00ff00)>>8))&0xff00ff00);
-            rb = ((rb + ((rb&0xff00ff00)>>8))&0xff00ff00)>>8;
-            return ag|rb;
+                return ARGB( (_c>>8) | (_c >> 32) );
+            }
+            else
+            {
+                // two components at a time
+                ARGB ag = (((c>>8)& 0xff00ff)*blend) + 0x800080;
+                ARGB rb = ((c     & 0xff00ff)*blend) + 0x800080;
+    
+                ag = ((ag + ((ag&0xff00ff00)>>8))&0xff00ff00);
+                rb = ((rb + ((rb&0xff00ff00)>>8))&0xff00ff00)>>8;
+                return ag|rb;
+            }
         }
 
         // blend color, keep alpha
@@ -47,19 +59,42 @@ namespace dust
             if(!~c1) return c2;
             if(!~c2) return c1;
 
-            // This unfortunately must be done component at a time
-            ARGB a = (c1 >> 24)          * (c2 >> 24);
-            ARGB r = ((c1 >> 16)&0xff)   * ((c2 >> 16)&0xff);
-            ARGB g = ((c1 >> 8)&0xff)    * ((c2 >> 8)&0xff);
-            ARGB b = (c1 & 0xff)         * (c2 & 0xff);
+            // slight faster(?) 64-bit path
+            if(sizeof(uintptr_t) >= 8)
+            {
+                uintptr_t _c1 = c1;
+                uintptr_t _c2 = c2;
 
-            // fix the [0, 255] range to [0, 256] instead
-            a = (a + (a >> 7)) & 0xff00;
-            r = (r + (r >> 7)) & 0xff00;
-            g = (g + (g >> 7)) & 0xff00;
-            b = (b + (b >> 7)) & 0xff00;
+                uintptr_t ag = (_c1&0xff00ff00u)*(_c2&0xff00ff00u);
+                uintptr_t rb = (_c1&0x00ff00ffu)*(_c2&0x00ff00ffu);
 
-            return (a << 16) | (r << 8) | g | (b >> 8);
+                ag += 0x0080000000800000;
+                ag &= 0xff000000ff000000;
+                
+                rb += 0x0000008000000080;
+                rb &= 0x0000ff000000ff00;
+    
+                uintptr_t _c = (ag>>16)|(rb>>8);
+                return ARGB(_c | (_c>>16));
+    
+                //return ARGB((ag>>16)|(ag>>32)|(rb>>8)|(rb>>24));
+            }
+            else
+            {            
+                // This unfortunately must be done component at a time
+                ARGB a = (c1 >> 24)          * (c2 >> 24);
+                ARGB r = ((c1 >> 16)&0xff)   * ((c2 >> 16)&0xff);
+                ARGB g = ((c1 >> 8)&0xff)    * ((c2 >> 8)&0xff);
+                ARGB b = (c1 & 0xff)         * (c2 & 0xff);
+    
+                // fix the [0, 254] range to [0, 255] instead
+                a = (a + 0x80) & 0xff00;
+                r = (r + 0x80) & 0xff00;
+                g = (g + 0x80) & 0xff00;
+                b = (b + 0x80) & 0xff00;
+    
+                return (a << 16) | (r << 8) | g | (b >> 8);
+            }
         }
 
         // add two colors with saturation
@@ -68,16 +103,32 @@ namespace dust
             if(!c1) return c2;
             if(!c2) return c1;
 
-            // two components at a time
-            ARGB ag = ((c1&0xff00ff00)>>8) + ((c2&0xff00ff00)>>8);
-            ARGB rb = ((c1&0x00ff00ff)     + ((c2&0x00ff00ff)));
+            // slightly faster(?) 64-bit path
+            if(sizeof(uintptr_t) >= 8)
+            {
+                uintptr_t _c1 = c1, _c2 = c2;
+                _c1 = ((_c1<<24)|_c1)&0x00ff00ff00ff00ffu;
+                _c2 = ((_c2<<24)|_c2)&0x00ff00ff00ff00ffu;
 
-            // saturate by taking the overflow, multiplying by 0xff
-            // to get an OR mask, then AND out the garbage
-            ARGB sat = 0xff * ((ag&0x01000100) | ((rb&0x01000100)>>8));
-            ARGB argb = (sat | (rb&0x00ff00ff)) | ((ag&0x00ff00ff)<<8);
+                uintptr_t _c = _c1 + _c2;
 
-            return argb;
+                uintptr_t sat = 0xff * (_c & (0x0100010001000100u));
+                _c = ((sat>>8) | (_c & 0x00ff00ff00ff00ffu));
+                return ARGB( _c | (_c >> 24) );
+            }
+            else
+            {
+                // two components at a time
+                ARGB ag = ((c1&0xff00ff00)>>8) + ((c2&0xff00ff00)>>8);
+                ARGB rb = ((c1&0x00ff00ff)     + ((c2&0x00ff00ff)));
+    
+                // saturate by taking the overflow, multiplying by 0xff
+                // to get an OR mask, then AND out the garbage
+                ARGB sat = 0xff * ((ag&0x01000100) | ((rb&0x01000100)>>8));
+                ARGB argb = (sat | (rb&0x00ff00ff)) | ((ag&0x00ff00ff)<<8);
+    
+                return argb;
+            }
         }
 
         // premultiplied over-composition,
@@ -99,9 +150,7 @@ namespace dust
         // lerp the colors using an alpha value as parameter
         // gives c0 when a = 0, c1 when a=0xff
         static inline ARGB alphaMask(ARGB c0, ARGB c1, Alpha a) {
-            // FIXME: do we need clipAdd() here?
-            //return clipAdd(blend(c1, 255-a), blend(c2, a));
-            return blend(c0, 255-a) + blend(c1, a);
+            return blend(c0, ~a) + blend(c1, a);
         }
 
         // lerp the colors using open-range 0:8 fixed point fraction
@@ -133,15 +182,15 @@ namespace dust
         // Computes c1/c2 and clips the result
         static inline ARGB divide(ARGB c1, ARGB c2)
         {
-            auto a1 = 0xff & (c1 >> 24);
-            auto r1 = 0xff & (c1 >> 16);
-            auto g1 = 0xff & (c1 >> 8);
-            auto b1 = 0xff & c1;
+            auto a1 = 0xffu & (c1 >> 24);
+            auto r1 = 0xffu & (c1 >> 16);
+            auto g1 = 0xffu & (c1 >> 8);
+            auto b1 = 0xffu & c1;
 
-            auto a2 = 0xff & (c2 >> 24);
-            auto r2 = 0xff & (c2 >> 16);
-            auto g2 = 0xff & (c2 >> 8);
-            auto b2 = 0xff & c2;
+            auto a2 = 0xffu & (c2 >> 24);
+            auto r2 = 0xffu & (c2 >> 16);
+            auto g2 = 0xffu & (c2 >> 8);
+            auto b2 = 0xffu & c2;
 
             auto a = std::min(0xffu, (a1*0xff) / std::max(1u, a2));
             auto r = std::min(0xffu, (r1*0xff) / std::max(1u, r2));
@@ -216,7 +265,7 @@ namespace dust
         // this is very much "custom"
         // this tries to maintain luminosity no matter what
         // and then tries to generate nice colors elsewhere
-        static inline ARGB getHSL(float h, float s, float l)
+        static inline ARGB getNiceHSL(float h, float s, float l)
         {
             // for luminosity, use sRGB^3 for better values?
             l *= l;

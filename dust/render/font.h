@@ -2,6 +2,7 @@
 #pragma once
 
 #include <string>   // for convenience
+#include <vector>
 
 #include "render_color.h"
 

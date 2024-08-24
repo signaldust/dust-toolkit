@@ -849,9 +849,6 @@ namespace dust
             // we never shift selection to the previous line
             unsigned shiftStart = cstart - pos;
             
-            // get offset from the end of line, bytes are fine
-            unsigned endOffset = end - cend;
-            
             while(pos < cend - shrink)
             {
                 // we need to count spaces here

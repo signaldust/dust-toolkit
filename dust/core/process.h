@@ -250,10 +250,10 @@ namespace dust
             char buf[bufSize];
             
             // figure out if child is actually alive
-            int status = 0;
 #ifdef _WIN32
             bool alive = (WaitForSingleObject(slaveHandle, 0) == WAIT_TIMEOUT);
 #else
+            int status = 0;
             bool alive = !waitpid(slavePid, &status, WNOHANG);
 #endif
             

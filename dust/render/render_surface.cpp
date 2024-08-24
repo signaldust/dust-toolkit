@@ -2,11 +2,8 @@
 
 #include <cmath>
 
+#include "dust/core/defs.h"
 #include "render_paint.h"
-
-#if defined(DUST_ARCH_X86)
-# include <x86intrin.h>
-#endif
 
 using namespace dust;
 

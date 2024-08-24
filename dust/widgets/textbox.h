@@ -92,8 +92,6 @@ namespace dust
             Font & font = getFont();
             if(!font.valid()) return;
 
-            int lineHeight = 1+(int)(font->getLineHeight());
-
             float w = 0, x = 0;
 
             int cursorX = 0;
@@ -111,8 +109,6 @@ namespace dust
 
                 // keep going until we have a full char
                 if(!decoder.next(byte)) continue;
-                auto ch = decoder.ch;
-
                 x += font->getCharAdvanceW(decoder.ch);
                 if(w < x) w = x;
             }
@@ -196,7 +192,6 @@ namespace dust
             ARGB cursorUseColor = cursorColor;
             if(!haveFocus) { cursorUseColor = 0; }
 
-            float dw = font->getCharAdvanceW('0');
             float x = 0, y = lineHeight - font->getDescent();
 
             // when inSelection is true, selectX gives the filled
@@ -236,7 +231,6 @@ namespace dust
 
                 // keep going until we have a full char
                 if(!decoder.next(byte)) continue;
-                auto ch = decoder.ch;
 
                 if(inSelection)
                 {
@@ -295,7 +289,6 @@ namespace dust
 
                 // keep going until we have a full char
                 if(!decoder.next(byte)) continue;
-                auto ch = decoder.ch;
 
                 prevCharPos = charPos;
                 charPos = bytePos;

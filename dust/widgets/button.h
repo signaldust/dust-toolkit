@@ -85,14 +85,10 @@ namespace dust
     // Basic button with basic rendering
     struct Button : ButtonBase
     {
-        bool    useGlow;    // if will draw glow/shadow
-
         Button()
         {
             style.minSizeX = 2*buttonRoundingPt;
             style.minSizeY = 2*buttonRoundingPt;
-
-            useGlow = false;
 
             float padding = 2*buttonMarginPt;
 
@@ -128,32 +124,11 @@ namespace dust
             bool down = (isMousePressed && isMouseOver);
             bool glow = (isMouseOver || isMousePressed);
 
-            if(useGlow)
-            {
-                Surface ss(layout.w, layout.h);
-                RenderContext rcss(ss);
-
-                rcss.clear(0);
-                if(down) rcss.fillPath(p, paint::Color(theme.bgMidColor));
-                rcss.strokePath(p, 2*pt,
-                    paint::Color(glow ? theme.fgColor : theme.fgMidColor));
-                if(!down) rcss.fillPath(p, paint::Color(theme.bgMidColor));
-
-                Surface blur;
-                blur.blur(ss, .25f*pt);
-                blur.emboss(.125f*pt);
-
-                rcss.copy<blend::InnerLight>(blur);
-                rc.copy<blend::Over>(ss);
-
-            }
-            else
-            {
-                if(down) rc.fillPath(p, paint::Color(theme.bgMidColor));
-                rc.strokePath(p, 2*pt,
-                    paint::Color(glow ? theme.fgColor : theme.fgMidColor));
-                if(!down) rc.fillPath(p, paint::Color(theme.bgMidColor));
-            }
+            rc.strokePath(p, 2*pt,
+                paint::Gradient2(
+                    glow ? theme.fgColor : theme.fgMidColor, 0, -1,
+                    theme.selColor, 0, down ? 0 : layout.h));
+            rc.fillPath(p, paint::Color(theme.bgMidColor));
         }
     };
 

@@ -1110,6 +1110,7 @@ namespace dust
 
             if(ev.type == MouseEvent::tDown && ev.button == 2)
             {
+                focus();
                 // ask for context menu
                 onContextMenu(ev); return true;
             }

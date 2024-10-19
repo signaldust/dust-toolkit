@@ -1001,7 +1001,7 @@ struct AppWindow : dust::Panel
         if(tab->content.editor.isModified())
         {
             auto doClose = [this, tab]() { forceCloseTab(tab); };
-            auto doSave = [this, tab, doClose]()
+            auto doSave = [tab, doClose]()
             {
                 tab->content.doSave(false, doClose);
             };
@@ -1099,7 +1099,7 @@ struct AppWindow : dust::Panel
 
             setWindowTitle();
         };
-        tab->onSelect = [this, tab](){ tab->content.editor.focus(); };
+        tab->onSelect = [tab](){ tab->content.editor.focus(); };
         tab->content.onSaveAs = [this,tab](){
             this->setLabelFromPath(tab);
             if(panel0.contains(tab)) panel0.redrawStrip();
@@ -1161,7 +1161,7 @@ struct AppWindow : dust::Panel
 
     void openDocument(const std::string & path, DocumentPanel * inPanel = 0)
     {
-#ifdef _WIN32ooooOz
+#ifdef _WIN32
         wchar_t w_absPath[MAX_PATH+1];
         _wfullpath(w_absPath, to_u16(path).c_str(), MAX_PATH);
         auto absPath = to_u8(w_absPath);

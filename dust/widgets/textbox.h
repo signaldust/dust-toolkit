@@ -175,7 +175,11 @@ namespace dust
 
                 rcFrame.strokePath(p, .5f * b,
                     paint::Color(haveFocus ? cursorColor : selectionColor));
-                rcFrame.fillPath(p, paint::Color(theme.bgColor));
+                rcFrame.fillPath(p, //paint::Color(theme.bgColor));
+                    paint::Gradient2(
+                        theme.winColor, 0, 0,
+                        theme.bgColor, 0, 2*b));
+                    
             }
 
             int lineHeight = 1+(int)(font->getLineHeight());

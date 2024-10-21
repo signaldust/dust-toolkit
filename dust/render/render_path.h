@@ -359,7 +359,7 @@ namespace dust
             // FIXME: on M1 we need a small epsilon so we're not sensitive
             // to floating point rounding at stroke ends.. should really figure
             // out a more consistent strategy to use here
-            if(prevDY*dx - prevDX*dy > 1e-4f)
+            if(prevDY*dx > prevDX*dy)
             {
                 // loop brush vertices to find the max cross
                 float maxCross = brush[bIndex].x*dy - brush[bIndex].y*dx;

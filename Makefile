@@ -7,7 +7,7 @@ CC := clang
 
 # Generic compilation flags, both C and C++
 CFLAGS := -I. -g -fvisibility=hidden
-CFLAGS += -Ofast -fomit-frame-pointer
+CFLAGS += -Ofast -fno-finite-math-only -fomit-frame-pointer
 CFLAGS += -Wall -Werror -Wfloat-conversion -ferror-limit=5
 CFLAGS += -Wno-unused -Wno-unused-function
 
@@ -16,12 +16,11 @@ CXXFLAGS := -std=c++11 -fno-exceptions
 
 LINKFLAGS :=
 
--include local.make
-
 DUST_LIB ?= dust
-
 DUST_BINDIR ?= bin
 DUST_BUILDDIR ?= build
+
+-include local.make
 
 # Windows specific
 ifeq ($(OS),Windows_NT)
@@ -119,7 +118,7 @@ define PluginTarget
     $(patsubst %,$(DUST_BUILDDIR)/%.o,$(wildcard $1*.cpp))
 	@echo LINKLIB $$@
 	@$(MAKEDIR) $(DUST_BUILDDIR)
-	@$(CC) -shared -o $$@ \
+	@$(CC) -shared -o $$@ $(DUST_PLUGIN_LINK) \
         $(patsubst %,$(DUST_BUILDDIR)/%.o,$(wildcard $1*.cpp)) $(LINKFLAGS)
 endef
 
@@ -129,11 +128,13 @@ PROJECTS := $(patsubst programs/%/,$(DUST_BINDIR)/%$(BINEXT),$(PROJDIRS))
 PLUGDIRS := $(wildcard plugins/*/)
 PROJECTS += $(patsubst plugins/%/,$(DUST_BUILDDIR)/%$(LIBEXT),$(PLUGDIRS))
 
-.PHONY: all clean
+.PHONY: all library clean
 
-all: $(LIBRARY) $(PROJECTS)
+all: library $(PROJECTS)
 	@echo DONE
 
+library: $(LIBRARY)
+    
 clean:
 	@echo CLEAN $(DUST_BUILDDIR)
 	@$(CLEANALL)
@@ -162,5 +163,5 @@ $(DUST_BUILDDIR)/%.cpp.o: %.cpp
 # Special target that dusted uses to get clang completions
 .PHONY: dusted-complete
 dusted-complete:
-	@clang -Wno-everything -x c++ $(CFLAGS) $(CXXFLAGS) -fsyntax-only -iquote$(dir $(DUSTED_PATH)). \
+	clang -Wno-everything -x c++ $(CFLAGS) $(CXXFLAGS) -fsyntax-only -iquote$(DUSTED_PATH) \
         -Xclang -code-completion-at=-:$(DUSTED_LINE):$(DUSTED_COL) -

@@ -37,7 +37,10 @@ namespace dust
         std::vector<std::string>    args;
 
         // this just makes the interface easier
-        void pushArg(const std::string & a) { args.push_back(a); }
+        void pushArg(const std::string & a)
+        {
+            args.push_back(a);
+        }
     
         // this starts the slave process
         void start()
@@ -183,6 +186,11 @@ namespace dust
         // return true if success, false if error occurs
         bool sendInput(const char * bytes, unsigned nBytes)
         {
+#ifndef _WIN32
+            // FIXME: it's a bit ugly to just disable this globally
+            signal(SIGPIPE, SIG_IGN);
+#endif
+        
             unsigned offset = 0;
             while(offset < nBytes)
             {
@@ -193,7 +201,7 @@ namespace dust
                 offset += wrote;
 #else
                 ssize_t wrote = write(slaveInput, bytes + offset, nBytes - offset);
-                if(wrote < 1) return false,
+                if(wrote < 1) return false;
                 offset += wrote;
 #endif
             }

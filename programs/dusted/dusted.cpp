@@ -500,7 +500,7 @@ struct Document : dust::Panel
             case dust::SCANCODE_S:
                 doSave(mods & dust::KEYMOD_SHIFT, dust::doNothing);
                 break;
-            case dust::SCANCODE_TAB: onCompletion(); break;
+            case dust::SCANCODE_SPACE: onCompletion(); break;
             default: return false;
         }
 
@@ -795,7 +795,20 @@ struct BuildPanel : dust::Panel
         slave.args.clear();
         slave.pushArg("make");
         slave.pushArg("dusted-complete");
-        slave.pushArg(dust::strf("DUSTED_PATH=\"%s\"", tab->content.path.c_str()));
+        
+        // FIXME: Apparently some versions of GNU make kindly screw up extracting
+        // just the directory part of the path here with the quotes...
+        //
+        // We probably should not abuse Make here, but .. we need a portable strategy
+        auto path = tab->content.path.c_str();
+#ifdef _WIN32
+        auto pathsep = '\\';
+#else
+        auto pathsep = '/';
+#endif
+        auto lastsep = strrchr(path, pathsep);
+        auto pathlen = lastsep ? lastsep - path : 0;
+        slave.pushArg(dust::strf("DUSTED_PATH=\"%.*s\"", (unsigned) pathlen, path));
         slave.pushArg(dust::strf("DUSTED_LINE=%d", tab->content.editor.getCursorLine()));
         slave.pushArg(dust::strf("DUSTED_COL=%d", tab->content.editor.getCursorColumn()));
 

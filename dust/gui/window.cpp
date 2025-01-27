@@ -166,7 +166,7 @@ namespace dust
     {
         GLuint  backingTexture;
 
-        GLuint  vao, vbo;
+        GLuint  vao;
         GLuint  shader;
 
         GLuint  fbo = 0, fboTex = 0;
@@ -190,23 +190,11 @@ namespace dust
             glGenVertexArrays(1, &vao);
             glBindVertexArray(vao);
 
-            // single right triangle, we'll just blow this up until
-            // it's large enough to cover the whole window
-            float verts[] = { 0, 0, 1, 0, 0, 1 };
-            
-            glGenBuffers(1, &vbo);
-            glBindBuffer(GL_ARRAY_BUFFER, vbo);
-            glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
-
-            // layout=0, size=2, float type, not normalized, stride=auto, offset=0
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer( 0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0 );
-
             const char * text = R"SHADER(
             // GLSL shader code
             #ifdef VERTEX
-                layout(location=0) in vec2 pos;
-                void main() { gl_Position = vec4(4*pos-1, 0, 1); }
+                const vec2 vert[3]=vec2[3](vec2(-1.,-1.),vec2(3.,-1.),vec2(-1.,3.));
+                void main() { gl_Position = vec4(vert[gl_VertexID], 0, 1); }
             #endif
             #ifdef FRAGMENT
                 uniform sampler2D ts0;  // software rendering
@@ -237,7 +225,6 @@ namespace dust
         ~WindowGL()
         {
             glDeleteProgram(shader);
-            glDeleteBuffers(1, &vbo);
             glDeleteVertexArrays(1, &vao);
             glDeleteTextures(1, &backingTexture);
         }
